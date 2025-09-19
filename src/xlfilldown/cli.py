@@ -92,7 +92,7 @@ def _parse_json_list(arg_val: Optional[str], flag_name: str) -> List[str]:
         return [str(h) for h in parsed]
     except Exception:
         raise SystemExit(
-            f"{flag_name} must be a valid JSON list of header names, e.g. '[\"tier1\",\"tier2\",\"tier,4\"]'"
+            f"{flag_name} must be a valid JSON list of header names, e.g. '[\"columnname1\",\"columnname2\",\"columnname,4\"]'"
         )
 
 
@@ -108,7 +108,7 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
     sub.add_argument(
         "--pad-cols",
         required=False,
-        help='JSON array of header names to forward-fill. Example: \'["tier1","tier2","tier,4"]\'',
+        help='JSON array of header names to forward-fill. Example: \'["columnname1","columnname2","columnname,4"]\'',
     )
     sub.add_argument(
         "--pad-cols-letters",
@@ -122,7 +122,7 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
         default="hierarchical",
         help=(
             "Fill-down mode for --pad-cols. "
-            "'hierarchical' (default) resets lower tiers when a higher tier changes. "
+            "'hierarchical' (default) resets lower tier columns when a higher tier column changes. "
             "'independent' carries each column separately (legacy per-column ffill)."
         ),
     )
@@ -133,7 +133,7 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
     )
     sub.add_argument(
         "--require-non-null",
-        help='JSON array of header names; drop row if ANY are null/blank AFTER padding. Example: \'["tier1","tier2"]\'',
+        help='JSON array of header names; drop row if ANY are null/blank AFTER padding. Example: \'["columnname1","columnname2"]\'',
     )
     sub.add_argument(
         "--row-hash",

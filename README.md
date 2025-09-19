@@ -40,7 +40,7 @@ Python ≥ 3.9. Depends on `openpyxl`.
 * `--header-row` *(required, 1-based)*: Row number containing the headers.
 
 * `--pad-cols`: JSON array of header names to forward-fill.  
-  Example: `'["tier1","tier2","tier,4"]'`.
+  Example: `'["columnname1","columnname2","anothercolumn,3"]'`.
 
 * `--pad-cols-letters`: Alternative to `--pad-cols`.  
   Provide Excel column letters (`A B C AE` etc.). These are resolved to **header names** using `--header-row`.  
@@ -48,7 +48,7 @@ Python ≥ 3.9. Depends on `openpyxl`.
   Mutually exclusive with `--pad-cols`.
 
 * `--pad-mode` *(default: `hierarchical`)*: Fill-down strategy.
-  * `hierarchical` → **default.** Higher-tier changes reset lower-tier carries.
+  * `hierarchical` → **default.** Higher-tier column changes reset lower-tier column carries.
   * `independent` → legacy/pandas-style ffill. Each padded column carries independently.
 
 * `--drop-blank-rows`: Drop rows where **all** padded columns are empty after padding (treat as spacer rows).
@@ -146,11 +146,11 @@ xlfilldown xlsx \
 ### Forward-fill (padding)
 
 * **Hierarchical (default):**
-  Higher-tier changes reset lower-tier carries.
+  Higher-tier column changes reset lower-tier column carries.
   Example:
 
   ```
-  Tier1   Tier2   Tier3
+  columnname1   columnname2   anothercolumn,3
   apple
          red     sour
   potato
