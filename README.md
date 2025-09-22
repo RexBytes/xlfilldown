@@ -4,12 +4,11 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/xlfilldown.svg)](https://pypi.org/project/xlfilldown/)
 [![License](https://img.shields.io/pypi/l/xlfilldown.svg)](https://github.com/RexBytes/xlfilldown/blob/main/LICENSE)
 
-
-Stream an Excel sheet into **SQLite** or a new **Excel** sheet in constant memory. Forward-fill (pad) selected columns by **header name**, preserve original Excel row numbers, and compute a stable **SHA-256 row hash**.
+Stream an Excel sheet into **SQLite** or a new **Excel** sheet in constant memory. Forward-fill selected columns by **header name**, preserve original Excel row numbers, and compute a stable **SHA-256 row hash**.
 
 * Ingests only columns with non-empty headers (from `--header-row`).
 * Stores all non-empty values as **TEXT strings** (numbers/dates canonicalized to stable text; strings are stripped; whitespace-only cells become **NULL**).
-* Adds optional `excel_row` and `row_hash` columns.
+* Optional `excel_row` and `row_hash` columns.
 * Streams rows; suitable for large sheets.
 
 ---
@@ -22,13 +21,15 @@ Stream an Excel sheet into **SQLite** or a new **Excel** sheet in constant memor
 pip install xlfilldown
 # or
 pipx install xlfilldown
-````
+```
 
 Python ≥ 3.9. Depends on `openpyxl`.
 
+---
+
 ## CLI
 
-`xlfilldown` has two subcommands. They share the same **input** options, and differ only in **output** destination.
+`xlfilldown` has two subcommands that share the same **input** options and differ only in the **output** destination:
 
 * `db`   → write to **SQLite**
 * `xlsx` → write to **Excel**
@@ -36,26 +37,39 @@ Python ≥ 3.9. Depends on `openpyxl`.
 ### Common input options
 
 * `--infile` *(required)*: Path to input `.xlsx` file.
+
 * `--insheet` *(required)*: Sheet name to read.
+
 * `--header-row` *(required, 1-based)*: Row number containing the headers.
 
-* `--pad-cols`: JSON array of header names to forward-fill.  
+* `--fill-cols`: JSON array of header names to forward-fill.
   Example: `'["columnname1","columnname2","anothercolumn,3"]'`.
 
-* `--pad-cols-letters`: Alternative to `--pad-cols`.  
-  Provide Excel column letters (`A B C AE` etc.). These are resolved to **header names** using `--header-row`.  
-  If a referenced column’s header cell is empty (None, whitespace, or “nan”), the command will error.  
-  Mutually exclusive with `--pad-cols`.
+* `--fill-cols-letters`: Alternative to `--fill-cols`.
+  Provide Excel column letters (`A B C AE` etc.). These are resolved to **header names** using `--header-row`.
+  If a referenced column’s header cell is empty (None, whitespace, or “nan”), the command errors.
+  Mutually exclusive with `--fill-cols`.
 
-* `--pad-mode` *(default: `hierarchical`)*: Fill-down strategy.
-  * `hierarchical` → **default.** Higher-tier column changes reset lower-tier column carries.
-  * `independent` → legacy/pandas-style ffill. Each padded column carries independently.
+* `--fill-mode` *(default: `hierarchical`)*: Fill strategy.
 
-* `--drop-blank-rows`: Drop rows where **all** padded columns are empty after padding (treat as spacer rows).
-* `--require-non-null`: JSON array of headers; drop the row if **any** are null/blank *after* padding.
+  * `hierarchical` → Higher-tier column changes **reset** lower-tier carries.
+  * `independent` → Pandas-style `ffill`, each listed column carries independently.
+
+* `--drop-blank-rows`: Drop rows where **all** fill columns are empty *after* filling (treat as spacer rows).
+
+* `--require-non-null`: JSON array of headers; drop the row if **any** are null/blank *after* fill.
+
+* `--require-non-null-letters`: Excel column letters; resolved to headers and **merged** with `--require-non-null`.
+
 * `--row-hash`: Include a `row_hash` column. In DB mode this also creates a non-unique index on `row_hash`.
+
 * `--excel-row-numbers`: Include original Excel row numbers in column `excel_row` (1-based).
+
 * `--if-exists` *(default: `fail`)*: `fail` | `replace` | `append`.
+
+> **Header matching:** After normalization (trim; case preserved; `'nan'` → blank), names must match exactly.
+
+---
 
 ### `db` subcommand (SQLite output)
 
@@ -80,9 +94,9 @@ xlfilldown db \
   --infile data.xlsx \
   --insheet "Sheet1" \
   --header-row 1 \
-  --pad-cols '["columnname1","columnname2","anothercolumn,3"]' \
+  --fill-cols '["columnname1","columnname2","anothercolumn,3"]' \
   --db out.db
-````
+```
 
 By column letters:
 
@@ -91,9 +105,11 @@ xlfilldown db \
   --infile data.xlsx \
   --insheet "Sheet1" \
   --header-row 1 \
-  --pad-cols-letters A C AE \
+  --fill-cols-letters A C AE \
   --db out.db
 ```
+
+---
 
 ### `xlsx` subcommand (Excel output)
 
@@ -117,7 +133,7 @@ xlfilldown xlsx \
   --infile data.xlsx \
   --insheet "Sheet1" \
   --header-row 1 \
-  --pad-cols '["columnname1","columnname2","anothercolumn,3"]' \
+  --fill-cols '["columnname1","columnname2","anothercolumn,3"]' \
   --outfile out.xlsx \
   --outsheet Processed
 ```
@@ -129,7 +145,7 @@ xlfilldown xlsx \
   --infile data.xlsx \
   --insheet "Sheet1" \
   --header-row 1 \
-  --pad-cols-letters A D \
+  --fill-cols-letters A D \
   --outfile out.xlsx \
   --outsheet Processed
 ```
@@ -143,50 +159,60 @@ xlfilldown xlsx \
 * Only columns with non-empty header cells on `--header-row` are ingested.
 * Empty or duplicate headers after normalization are rejected.
 
-### Forward-fill (padding)
+### Forward-fill (filling)
 
-* **Hierarchical (default):**
-  Higher-tier column changes reset lower-tier column carries.
-  Example:
+* **Hierarchical (default): order matters**
+  The hierarchy is the **order you pass the columns**. The leftmost is the highest tier.
 
-  ```
-  columnname1   columnname2   anothercolumn,3
-  apple
-         red     sour
-  potato
-         fried   yellow
-  ```
+  * Names: `--fill-cols '["Region","Country","City"]'` ⇒ Region > Country > City
+  * Letters: `--fill-cols-letters A C B` ⇒ Column A > Column C > Column B
+    When a higher-tier value appears on a row, all lower-tier carries **reset for that row**.
 
-  → produces:
+* **Independent (pandas-style `ffill`)**
+  Each listed column forward-fills **independently**.
+  Order of columns **does not** matter. Columns do **not** reset each other.
 
-  ```
-  apple   red    sour
-  potato  None   None
-  potato  fried  yellow
-  ```
-
-* **Independent (legacy):**
-  Each padded column carries independently (pandas-style ffill). Same input produces:
-
-  ```
-  apple   red    sour
-  potato  red    sour
-  potato  fried  yellow
-  ```
-
-* Completely empty rows (all headers blank) are preserved as empty **without** applying fill-down; the carry persists past them for later rows.
+* Completely empty rows (all headers blank) are preserved as empty **without** applying fill; the carry persists past them for later rows.
 
 * Whitespace-only cells are treated as blank.
 
+**Illustration**
+
+Input:
+
+```
+columnname1   columnname2   anothercolumn,3
+apple
+       red     sour
+potato
+       fried   yellow
+```
+
+Hierarchical output:
+
+```
+apple   red    sour
+potato  None   None
+potato  fried  yellow
+```
+
+Independent output:
+
+```
+apple   red    sour
+potato  red    sour
+potato  fried  yellow
+```
+
 ### Dropping rows
 
-* `--drop-blank-rows`: drops rows where **all** `--pad-cols` are blank (often spacer rows).
-* `--require-non-null [A,B,…]`: drops rows where **any** of those headers are blank *after* padding.
+* `--drop-blank-rows`: drops rows where **all** `--fill-cols` are blank (often spacer rows).
+* `--require-non-null [A,B,…]` / `--require-non-null-letters`: drops rows where **any** of those headers are blank *after* filling.
 
 ### Row hash
 
-* `--row-hash` adds a SHA-256 hex digest over **all ingested columns** (in header order) *after* padding for non-empty rows.
-* For completely empty rows, the hash reflects all-empty values (no padding is applied by design).
+* `--row-hash` adds a SHA-256 hex digest over **all ingested columns** (in header order) *after* filling for non-empty rows.
+* For completely empty rows, the hash reflects all-empty values (no filling is applied by design).
 * SQLite mode creates a non-unique index on `row_hash` for faster lookups.
 * Numeric cells are normalized for hashing (e.g., `1`, `1.0` → `1`; no scientific notation).
 
@@ -215,7 +241,7 @@ summary = ingest_excel_to_sqlite(
     excel_row_numbers=True,
     if_exists="replace",
     batch_size=1000,
-    pad_hierarchical=True,   # default
+    pad_hierarchical=True,   # default hierarchical fill
 )
 
 # → Excel
@@ -231,7 +257,7 @@ summary = ingest_excel_to_excel(
     row_hash=True,
     excel_row_numbers=True,
     if_exists="replace",
-    pad_hierarchical=False,  # use independent fill
+    pad_hierarchical=False,  # independent (pandas-style) fill
 )
 ```
 
@@ -245,11 +271,8 @@ summary = ingest_excel_to_excel(
 ## Notes
 
 * All destination columns are written as **`TEXT`** (including `excel_row`). Values are stored as canonical strings; hashing uses the same canonicalization.
-* The input workbook is opened with `read_only=True, data_only=True` (formulas are evaluated to cached values).
+* The input workbook is opened with `read_only=True, data_only=True` (formulas use cached values).
 
 ## License
 
 MIT © RexBytes
-
-
-

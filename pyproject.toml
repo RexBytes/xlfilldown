@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xlfilldown"
-version = "0.1.1"
+version = "0.2.0"
 description = "Stream an Excel sheet into SQLite or Excel with forward-fill padding, preserved Excel row numbers, and a stable row hash."
 readme = "README.md"
 requires-python = ">=3.9"

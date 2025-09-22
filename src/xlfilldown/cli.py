@@ -11,7 +11,7 @@ from .api import ingest_excel_to_sqlite, ingest_excel_to_excel, normalize_header
 from openpyxl import load_workbook
 from openpyxl.utils import column_index_from_string
 
-def _resolve_pad_cols_from_letters(
+def _resolve_headers_from_letters(
     *,
     infile: str,
     insheet: str,
@@ -67,7 +67,7 @@ def _resolve_pad_cols_from_letters(
             if header_name == "":
                 raise SystemExit(
                     f"Column letter {letter} refers to an empty header cell on row {header_row}. "
-                    f"Use a column with a non-empty header, or pass --pad-cols with explicit header names."
+                    f"Use a column with a non-empty header, or pass --fill-cols with explicit header names."
                 )
 
             resolved.append(header_name)
@@ -106,34 +106,40 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
         help="Header row number as seen in Excel (1-based)",
     )
     sub.add_argument(
-        "--pad-cols",
+        "--fill-cols",
         required=False,
         help='JSON array of header names to forward-fill. Example: \'["columnname1","columnname2","columnname,4"]\'',
     )
     sub.add_argument(
-        "--pad-cols-letters",
+        "--fill-cols-letters",
         nargs="+",
         help="Excel column letters to forward-fill (e.g. A B C AE). "
              "Resolved to header names using --header-row.",
     )
     sub.add_argument(
-        "--pad-mode",
+        "--fill-mode",
         choices=["hierarchical", "independent"],
         default="hierarchical",
         help=(
-            "Fill-down mode for --pad-cols. "
+            "Fill-down mode for --fill-cols. "
             "'hierarchical' (default) resets lower tier columns when a higher tier column changes. "
-            "'independent' carries each column separately (legacy per-column ffill)."
+            "'independent' carries each column separately (pandas-style ffill)."
         ),
     )
     sub.add_argument(
         "--drop-blank-rows",
         action="store_true",
-        help="Drop rows where ALL padded columns are empty AFTER padding (true spacer rows).",
+        help="Drop rows where ALL fill columns are empty AFTER padding (true spacer rows).",
     )
     sub.add_argument(
         "--require-non-null",
         help='JSON array of header names; drop row if ANY are null/blank AFTER padding. Example: \'["columnname1","columnname2"]\'',
+    )
+    sub.add_argument(
+        "--require-non-null-letters",
+        nargs="+",
+        help="Excel column letters for required-non-null (e.g. A D). "
+             "Resolved to header names using --header-row, then merged with --require-non-null.",
     )
     sub.add_argument(
         "--row-hash",
@@ -154,11 +160,12 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
 
 
 
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description=(
             "Fill-down ETL: stream an Excel sheet to SQLite or Excel, "
-            "with padding for named columns, optional Excel row numbers, and a stable row hash."
+            "with forward-fill for named columns, optional Excel row numbers, and a stable row hash."
         )
     )
     ap.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
@@ -198,34 +205,46 @@ def main() -> None:
         ap.print_help()
         return
 
-    # --- New: refuse invalid header rows early (clear UX) ---
+    # Guard: header row must be ≥ 1
     if getattr(args, "header_row", None) is not None and args.header_row < 1:
         raise SystemExit("--header-row must be >= 1.")
 
-    # Resolve pad columns: either by explicit JSON header names OR by column letters
-    if getattr(args, "pad_cols_letters", None) and args.pad_cols:
-        raise SystemExit("Use only one of --pad-cols or --pad-cols-letters, not both.")
+    # Resolve fill columns: either by explicit JSON header names OR by column letters
+    if getattr(args, "fill_cols_letters", None) and args.fill_cols:
+        raise SystemExit("Use only one of --fill-cols or --fill-cols-letters, not both.")
 
-    if getattr(args, "pad_cols_letters", None):
-        pad_cols = _resolve_pad_cols_from_letters(
+    if getattr(args, "fill_cols_letters", None):
+        pad_cols = _resolve_headers_from_letters(
             infile=args.infile,
             insheet=args.insheet,
             header_row=args.header_row,
-            letters=args.pad_cols_letters,
+            letters=args.fill_cols_letters,
         )
-    elif args.pad_cols is not None:
-        pad_cols = _parse_json_list(args.pad_cols, "--pad-cols")
+    elif args.fill_cols is not None:
+        pad_cols = _parse_json_list(args.fill_cols, "--fill-cols")
         if not pad_cols:
-            # Preserve legacy error message expected by tests
-            raise SystemExit("--pad-cols cannot be empty; provide at least one header name.")
+            raise SystemExit("--fill-cols cannot be empty; provide at least one header name.")
     else:
         # Neither option provided
         raise SystemExit(
-            "You must provide either --pad-cols (JSON header names) or --pad-cols-letters (Excel column letters)."
+            "You must provide either --fill-cols (JSON header names) or --fill-cols-letters (Excel column letters). "
+            "Example: --fill-cols '[\"Tier 1\",\"Tier 2\"]'  or  --fill-cols-letters A C AE"
         )
 
+    # Resolve required_non_null by names + letters (additive)
     required_non_null = _parse_json_list(args.require_non_null, "--require-non-null") if args.require_non_null else []
-    pad_hierarchical = (args.pad_mode == "hierarchical")
+    if getattr(args, "require_non_null_letters", None):
+        required_non_null += _resolve_headers_from_letters(
+            infile=args.infile,
+            insheet=args.insheet,
+            header_row=args.header_row,
+            letters=args.require_non_null_letters,
+        )
+    # De-dup while preserving order
+    seen_r = set()
+    required_non_null = [h for h in required_non_null if not (h in seen_r or seen_r.add(h))]
+
+    pad_hierarchical = (args.fill_mode == "hierarchical")
 
     if args.command == "db":
         summary = ingest_excel_to_sqlite(
@@ -285,6 +304,7 @@ def main() -> None:
             f"(cols={cols}{extras_str}; rows={summary['rows_written']}; if_exists={args.if_exists})"
         )
         return
+
 
 
 

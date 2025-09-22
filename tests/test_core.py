@@ -1,6 +1,7 @@
 import io
 from pathlib import Path
 import sqlite3
+from datetime import datetime
 
 import openpyxl
 import pytest
@@ -638,7 +639,7 @@ def test_cli_db_happy_path_prints_summary(tmp_path, capsys):
         "--infile", str(infile),
         "--insheet", "Sheet1",
         "--header-row", "1",
-        "--pad-cols", '["A"]',
+        "--fill-cols", '["A"]',
         "--db", str(db),
         "--table", "t",
         "--row-hash",
@@ -667,7 +668,7 @@ def test_cli_xlsx_happy_path_prints_summary(tmp_path):
         "--infile", str(infile),
         "--insheet", "S1",
         "--header-row", "1",
-        "--pad-cols", '["A"]',
+        "--fill-cols", '["A"]',
         "--outfile", str(outfile),
         "--outsheet", "Processed",
         "--row-hash",
@@ -688,7 +689,7 @@ def test_cli_xlsx_happy_path_prints_summary(tmp_path):
 
 
 def test_cli_pad_cols_bad_json_exits(tmp_path):
-    """CLI should exit with a clear message if --pad-cols JSON is invalid."""
+    """CLI should exit with a clear message if --fill-cols JSON is invalid."""
     infile = _write_wb_simple(tmp_path, title="S")
     db = tmp_path / "o.db"
     cmd = [
@@ -696,7 +697,7 @@ def test_cli_pad_cols_bad_json_exits(tmp_path):
         "--infile", str(infile),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols", 'not-a-json',
+        "--fill-cols", 'not-a-json',
         "--db", str(db),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -705,7 +706,7 @@ def test_cli_pad_cols_bad_json_exits(tmp_path):
 
 
 def test_cli_pad_cols_empty_list_exits(tmp_path):
-    """CLI should reject an empty list for --pad-cols."""
+    """CLI should reject an empty list for --fill-cols."""
     infile = _write_wb_simple(tmp_path, title="S")
     db = tmp_path / "o.db"
     cmd = [
@@ -713,12 +714,12 @@ def test_cli_pad_cols_empty_list_exits(tmp_path):
         "--infile", str(infile),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols", "[]",
+        "--fill-cols", "[]",
         "--db", str(db),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode != 0
-    assert "--pad-cols cannot be empty" in (r.stderr + r.stdout)
+    assert "--fill-cols cannot be empty" in (r.stderr + r.stdout)
 
 
 def test_sqlite_append_exact_schema_match_succeeds(tmp_path):
@@ -783,7 +784,7 @@ def test_excel_if_exists_replace_recreates(tmp_path):
 
 
 def test_pad_cols_duplicates_are_deduped_preserving_first(tmp_path):
-    """Duplicate names in --pad-cols should be de-duped while preserving order of first occurrence."""
+    """Duplicate names in --fill-cols should be de-duped while preserving order of first occurrence."""
     p = tmp_path / "in_dupcols.xlsx"
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -926,7 +927,7 @@ def test_pad_cols_letters_rejects_empty_header(tmp_path, capsys):
     cmd = [
         sys.executable, "-m", "xlfilldown.cli", "db",
         "--infile", str(p), "--insheet", "S", "--header-row", "1",
-        "--pad-cols-letters", "B",            # points to empty header
+        "--fill-cols-letters", "B",            # points to empty header
         "--db", str(tmp_path / "o.db"),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -951,7 +952,7 @@ def test_cli_pad_cols_letters_happy_path_db(tmp_path):
         "--infile", str(p),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols-letters", "A",   # resolves to "Grp"
+        "--fill-cols-letters", "A",   # resolves to "Grp"
         "--db", str(db),
         "--table", "t",
         "--if-exists", "replace",
@@ -981,7 +982,7 @@ def test_cli_pad_cols_letters_out_of_range_errors(tmp_path):
         "--infile", str(p),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols-letters", "ZZ",   # way out of range
+        "--fill-cols-letters", "ZZ",   # way out of range
         "--db", str(db),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -991,7 +992,7 @@ def test_cli_pad_cols_letters_out_of_range_errors(tmp_path):
 
 
 def test_cli_pad_cols_letters_mutually_exclusive_errors(tmp_path):
-    """Providing both --pad-cols and --pad-cols-letters must fail clearly."""
+    """Providing both --fill-cols and --fill-cols-letters must fail clearly."""
     p = tmp_path / "letters_me.xlsx"
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1006,13 +1007,13 @@ def test_cli_pad_cols_letters_mutually_exclusive_errors(tmp_path):
         "--infile", str(p),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols", '["Grp"]',
-        "--pad-cols-letters", "A",
+        "--fill-cols", '["Grp"]',
+        "--fill-cols-letters", "A",
         "--db", str(db),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
     assert r.returncode != 0
-    assert "Use only one of --pad-cols or --pad-cols-letters" in (r.stderr + r.stdout)
+    assert "Use only one of --fill-cols or --fill-cols-letters" in (r.stderr + r.stdout)
 
 # --- New tests for header-row bounds, CLI guard, and write_only sheet handling ---
 
@@ -1071,7 +1072,7 @@ def test_cli_header_row_zero_errors(tmp_path):
         "--infile", str(infile),
         "--insheet", "S",
         "--header-row", "0",
-        "--pad-cols", '["A"]',
+        "--fill-cols", '["A"]',
         "--db", str(db),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -1094,7 +1095,7 @@ def test_cli_letters_out_of_range_mentions_header_row_and_headered_cols(tmp_path
         "--infile", str(p),
         "--insheet", "S",
         "--header-row", "1",
-        "--pad-cols-letters", "ZZ",
+        "--fill-cols-letters", "ZZ",
         "--db", str(tmp_path / "o.db"),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -1140,7 +1141,7 @@ def test_cli_letters_header_row_exceeds_max_errors(tmp_path):
         "--infile", str(p),
         "--insheet", "S",
         "--header-row", "999",
-        "--pad-cols-letters", "A",
+        "--fill-cols-letters", "A",
         "--db", str(tmp_path / "o.db"),
     ]
     r = subprocess.run(cmd, capture_output=True, text=True)
@@ -1187,6 +1188,423 @@ def test_excel_multiple_sheets_in_same_workbook(tmp_path):
             assert header == ["tier0", "tier1"]
     finally:
         wb.close()
+
+def test_cli_fill_cols_happy_path_db(tmp_path):
+    p = tmp_path / "in.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A","B"])
+    ws.append(["x1","y1"])
+    ws.append([None,"y2"])      # A should fill to x1
+    wb.save(p); wb.close()
+
+    db = tmp_path / "o.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["A"]',
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "A","B" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("x1","y1"), ("x1","y2")]
+
+
+def test_cli_fill_cols_letters_happy_path_db(tmp_path):
+    p = tmp_path / "in2.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Grp","Val","Note"])
+    ws.append(["g1", None, "n1"])
+    ws.append([None,"v2","n2"])
+    wb.save(p); wb.close()
+
+    db = tmp_path / "o2.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols-letters", "A",     # => "Grp"
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "Grp","Val","Note" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("g1", None, "n1"), ("g1","v2","n2")]
+
+
+
+def test_require_non_null_letters_merges_with_names_cli(tmp_path):
+    p = tmp_path / "in_req_letters.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Grp","A","B"])
+    ws.append([None,"x",None])    # drop (Grp missing)
+    ws.append(["g1",None,"y"])    # keep (Grp present & B present)
+    wb.save(p); wb.close()
+
+    db = tmp_path / "o_req.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["Grp"]',
+        "--require-non-null", '["B"]',
+        "--require-non-null-letters", "A",   # "Grp"
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "Grp","A","B" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("g1", None, "y")]
+
+
+def test_cli_fill_cols_and_letters_mutually_exclusive(tmp_path):
+    p = tmp_path / "in_me.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A"]); ws.append(["x"])
+    wb.save(p); wb.close()
+    db = tmp_path / "o_me.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["A"]',
+        "--fill-cols-letters", "A",
+        "--db", str(db),
+    ], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "only one of --fill-cols or --fill-cols-letters" in (r.stdout + r.stderr)
+
+
+
+def test_cli_fill_cols_empty_list_exits(tmp_path):
+    p = tmp_path / "in_emptylist.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A"]); ws.append(["x"])
+    wb.save(p); wb.close()
+    db = tmp_path / "o_empty.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", "[]",
+        "--db", str(db),
+    ], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "--fill-cols cannot be empty" in (r.stderr + r.stdout)
+
+
+
+def test_fill_mode_hierarchical_order_matters_letters(tmp_path):
+    p = tmp_path / "hier_order.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Tier1","Tier2","Val"])
+    ws.append(["A", None, "v1"])     # new Tier1
+    ws.append([None,"x","v2"])       # detail under A: Tier2=x
+    ws.append(["B", None, "v3"])     # new Tier1 -> resets Tier2 carry
+    ws.append([None,None,"v4"])      # this row exposes the reset behavior
+    wb.save(p); wb.close()
+
+    # Order: Tier1 > Tier2 (A then B resets Tier2)
+    db1 = tmp_path / "o_hier1.db"
+    subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols-letters", "A", "B",
+        "--db", str(db1), "--table", "t", "--if-exists", "replace",
+    ], check=True, capture_output=True, text=True)
+    with sqlite3.connect(str(db1)) as conn:
+        rows1 = conn.execute('SELECT "Tier1","Tier2","Val" FROM t ORDER BY rowid').fetchall()
+
+    # Reverse order: Tier2 > Tier1 (no reset of Tier2 when Tier1 changes)
+    db2 = tmp_path / "o_hier2.db"
+    subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols-letters", "B", "A",
+        "--db", str(db2), "--table", "t", "--if-exists", "replace",
+    ], check=True, capture_output=True, text=True)
+    with sqlite3.connect(str(db2)) as conn:
+        rows2 = conn.execute('SELECT "Tier1","Tier2","Val" FROM t ORDER BY rowid').fetchall()
+
+    # On the fourth data row (v4), hierarchical order changes the Tier2 value
+    # rows are: v1, v2, v3, v4
+    assert rows1[3] == ("B", None, "v4")     # Tier2 reset under Tier1 change
+    assert rows2[3] == ("B", "x", "v4")      # Tier2 carried because Tier2 is higher tier
+
+
+def test_fill_mode_independent_order_does_not_matter(tmp_path):
+    p = tmp_path / "indep_order.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["T1","T2","Val"])
+    ws.append(["A", None, "v1"])
+    ws.append([None,"x","v2"])
+    ws.append(["B", None, "v3"])
+    ws.append([None,None,"v4"])
+    wb.save(p); wb.close()
+
+    def run_with_order(order, dbpath):
+        r = subprocess.run([
+            sys.executable, "-m", "xlfilldown.cli", "db",
+            "--infile", str(p), "--insheet", "S", "--header-row", "1",
+            "--fill-cols-letters", *order,
+            "--fill-mode", "independent",
+            "--db", str(dbpath), "--table", "t", "--if-exists", "replace",
+        ], capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        with sqlite3.connect(str(dbpath)) as conn:
+            return conn.execute('SELECT "T1","T2","Val" FROM t ORDER BY rowid').fetchall()
+
+    rows1 = run_with_order(["A","B"], tmp_path / "o_ind1.db")
+    rows2 = run_with_order(["B","A"], tmp_path / "o_ind2.db")
+    assert rows1 == rows2
+
+
+
+def test_require_non_null_letters_empty_header_errors(tmp_path):
+    p = tmp_path / "req_empty_hdr.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A", "   ", "C"])   # B header is whitespace -> empty after normalization
+    ws.append(["x", "y", "z"])
+    wb.save(p); wb.close()
+
+    db = tmp_path / "o_req_empty_hdr.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["A"]',
+        "--require-non-null-letters", "B",
+        "--db", str(db),
+    ], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "refers to an empty header cell" in (r.stdout + r.stderr)
+
+
+
+def test_fill_mode_default_is_hierarchical(tmp_path):
+    p = tmp_path / "default_mode.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["T1","T2"])
+    ws.append(["A", None])   # row 2
+    ws.append([None, "x"])   # row 3 -> carries T1 = "A", sets T2 = "x"
+    ws.append(["B", None])   # row 4 -> T1 changes to "B" and resets lower tier T2 to None
+    ws.append([None, None])  # row 5 -> completely empty spacer row (no fill applied)
+    wb.save(p); wb.close()
+
+    db = tmp_path / "o_default.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["T1","T2"]',
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "T1","T2" FROM t ORDER BY rowid').fetchall()
+
+    # rows are:
+    # 0: ("A", None)
+    # 1: ("A", "x")
+    # 2: ("B", None)      <- hierarchical reset observed here
+    # 3: (None, None)     <- spacer row preserved with no fill
+    assert rows[2] == ("B", None)
+    assert rows[3] == (None, None)
+
+
+
+
+
+def test_cli_require_non_null_bad_json_exits(tmp_path):
+    p = tmp_path / "in_badjson.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A"]); ws.append(["x"])
+    wb.save(p); wb.close()
+    db = tmp_path / "o_badjson.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["A"]',
+        "--require-non-null", 'not-json',
+        "--db", str(db),
+    ], capture_output=True, text=True)
+    assert r.returncode != 0
+    assert "--require-non-null must be a valid JSON list of header names" in (r.stderr + r.stdout)
+
+
+
+def test_require_non_null_merge_order_and_dedup(tmp_path):
+    p = tmp_path / "merge_req.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A","B","C"])
+    ws.append(["g", None, "x"])
+    ws.append(["g", "y",  None])
+    wb.save(p); wb.close()
+
+    db = tmp_path / "m.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["A","B","C"]',
+        "--require-non-null", '["C","A","C"]',    # duplicates + specific order
+        "--require-non-null-letters", "B",        # merged at the end if new
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    # Enforce semantics (we don't read the merged list directly; behavior shows it)
+    # Row1: A=g, B=None, C=x -> B missing -> DROPPED
+    # Row2: A=g, B=y,   C=None -> C missing -> DROPPED
+    with sqlite3.connect(str(db)) as conn:
+        n = conn.execute('SELECT COUNT(*) FROM t').fetchone()[0]
+    assert n == 0
+
+
+
+def test_hierarchical_three_tiers_mid_level_reset(tmp_path):
+    p = tmp_path / "3tiers.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["T1","T2","T3","Val"])
+    ws.append(["A", None, None, "v1"])
+    ws.append([None,"x",  "p",  "v2"])  # set T2=x, T3=p under T1=A
+    ws.append([None,"y",  None, "v3"])  # change T2 to y -> reset T3 only
+    wb.save(p); wb.close()
+
+    db = tmp_path / "3.db"
+    subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols", '["T1","T2","T3"]',
+        "--db", str(db), "--table", "t", "--if-exists", "replace",
+    ], check=True, capture_output=True, text=True)
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "T1","T2","T3","Val" FROM t ORDER BY rowid').fetchall()
+    assert rows == [
+        ("A", None, None, "v1"),
+        ("A", "x",  "p",  "v2"),
+        ("A", "y",  None, "v3"),  # T1 carried, T2 changed, T3 reset
+    ]
+
+
+
+
+def test_independent_mode_ignores_fill_cols_order(tmp_path):
+    p = tmp_path / "indep_order2.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["A","B","V"])
+    ws.append(["g1", None, "v1"])
+    ws.append([None,"x",  "v2"])
+    ws.append([None,None,"v3"])
+    wb.save(p); wb.close()
+
+    def run(fill_cols, dbpath):
+        subprocess.run([
+            sys.executable, "-m", "xlfilldown.cli", "db",
+            "--infile", str(p), "--insheet", "S", "--header-row", "1",
+            "--fill-cols", fill_cols,
+            "--fill-mode", "independent",
+            "--db", str(dbpath), "--table", "t", "--if-exists", "replace",
+        ], check=True, capture_output=True, text=True)
+        with sqlite3.connect(str(dbpath)) as conn:
+            return conn.execute('SELECT "A","B","V" FROM t ORDER BY rowid').fetchall()
+
+    rows1 = run('["A","B"]', tmp_path / "i1.db")
+    rows2 = run('["B","A"]', tmp_path / "i2.db")
+    assert rows1 == rows2
+
+
+def test_date_canonicalization_and_hash(tmp_path):
+    p = tmp_path / "dates.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Grp","When","Txt"])
+    # openpyxl stores python date/datetime objects; we use isoformat
+    d1 = datetime(2024, 5, 17, 13, 45, 0)
+    ws.append(["g1", d1, "a"])
+    ws.append([None, None, "b"])  # When should fill
+    wb.save(p); wb.close()
+
+    db = tmp_path / "dates.db"
+    summary = ingest_excel_to_sqlite(
+        file=p, sheet="S", header_row=1, pad_cols=["Grp","When"],
+        db=db, table="t", row_hash=True, if_exists="replace"
+    )
+    assert summary["rows_ingested"] == 2
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT row_hash, "Grp","When","Txt" FROM t ORDER BY rowid').fetchall()
+
+    # Expect isoformat for When, identical across rows after fill
+    assert rows[0][2] == d1.isoformat()
+    assert rows[1][2] == d1.isoformat()
+
+    # Hashes should differ only by Txt
+    h1, h2 = rows[0][0], rows[1][0]
+    assert h1 != h2
+
+def test_fill_cols_letters_out_of_range_mentions_context(tmp_path):
+    p = tmp_path / "oor.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Only"])
+    ws.append(["x"])
+    wb.save(p); wb.close()
+
+    db = tmp_path / "oor.db"
+    r = subprocess.run([
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(p), "--insheet", "S", "--header-row", "1",
+        "--fill-cols-letters", "ZZ",
+        "--db", str(db),
+    ], capture_output=True, text=True)
+    assert r.returncode != 0
+    msg = (r.stderr + r.stdout)
+    assert "out of range" in msg and "header row 1" in msg and "only headered columns are ingested" in msg
+
+
+def test_fill_mode_hierarchical_excel_writer(tmp_path):
+    p = tmp_path / "padmodes.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["Tier 1","Tier 2","Tier 3","Tier 4"])
+    ws.append(["apple",  None,   None,   None])
+    ws.append([None,     "red",  "sour", "value1"])
+    ws.append(["potato", None,   None,   None])
+    ws.append([None,     None,   None,   "value2"])
+    ws.append([None,     "fried","yellow","value3"])
+    wb.save(p); wb.close()
+
+    out = tmp_path / "o.xlsx"
+    s = ingest_excel_to_excel(
+        file=p, sheet="S", header_row=1,
+        pad_cols=["Tier 1","Tier 2","Tier 3"],
+        outfile=out, outsheet="O",
+        drop_blank_rows=True, require_non_null=["Tier 4"],
+        pad_hierarchical=True, if_exists="replace"
+    )
+    wb2 = openpyxl.load_workbook(out)
+    ws2 = wb2["O"]
+    data = [[c.value for c in r] for r in ws2.iter_rows(min_row=2, max_row=1+s["rows_written"])]
+    assert data == [
+        ["apple","red","sour","value1"],
+        ["potato", None, None, "value2"],
+        ["potato","fried","yellow","value3"],
+    ]
+    wb2.close()
+
+
+def test_drop_blank_rows_whitespace_with_fill_flags(tmp_path):
+    p = tmp_path / "wsdrop2.xlsx"
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "S"
+    ws.append(["grp","val"])
+    ws.append(["   ", "x"])    # grp blank -> droppable when drop_blank_rows=True
+    ws.append(["g1",  "y"])
+    wb.save(p); wb.close()
+
+    db = tmp_path / "wsdrop2.db"
+    s = ingest_excel_to_sqlite(
+        file=p, sheet="S", header_row=1, pad_cols=["grp"], db=db,
+        drop_blank_rows=True, if_exists="replace"
+    )
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT grp, val FROM "S" ORDER BY rowid').fetchall()
+    assert rows == [("g1","y")]
+
+
+
+
+
+
+
 
 
 
