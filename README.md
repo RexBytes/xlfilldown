@@ -225,23 +225,26 @@ potato  fried  yellow
 ## Python API
 
 ```python
-from xlfilldown.core import ingest_excel_to_sqlite, ingest_excel_to_excel
+from xlfilldown.api import ingest_excel_to_sqlite, ingest_excel_to_excel
 
 # → SQLite
 summary = ingest_excel_to_sqlite(
     file="data.xlsx",
     sheet="Sheet1",
     header_row=1,
-    pad_cols=["columnname1","columnname2","anothercolumn,3"],
+    # choose one:
+    fill_cols=["columnname1", "columnname2", "anothercolumn,3"],   # by header names
+    # fill_cols_letters=["A", "B", "C"],                           # or by Excel letters
     db="out.db",
     table=None,
     drop_blank_rows=True,
-    require_non_null=["columnname1","columnname2"],
+    require_non_null=["columnname1", "columnname2"],
     row_hash=True,
     excel_row_numbers=True,
     if_exists="replace",
     batch_size=1000,
-    pad_hierarchical=True,   # default hierarchical fill
+    fill_mode="hierarchical",    # default hierarchical fill
+    # fill_mode="independent",   # independent (pandas-style) fill
 )
 
 # → Excel
@@ -249,22 +252,25 @@ summary = ingest_excel_to_excel(
     file="data.xlsx",
     sheet="Sheet1",
     header_row=1,
-    pad_cols=["columnname1","columnname2","anothercolumn,3"],
+    fill_cols=["columnname1", "columnname2", "anothercolumn,3"],
+    # or: fill_cols_letters=["A", "B", "C"],
     outfile="out.xlsx",
     outsheet=None,
     drop_blank_rows=True,
-    require_non_null=["columnname1","columnname2"],
+    require_non_null=["columnname1", "columnname2"],
     row_hash=True,
     excel_row_numbers=True,
     if_exists="replace",
-    pad_hierarchical=False,  # independent (pandas-style) fill
+    fill_mode="independent",     # independent (pandas-style) fill
+    # fill_mode="hierarchical",  # hierarchical (default)
 )
-```
+````
 
 **Return fields**
 
 * SQLite: `{ table, columns, rows_ingested, row_hash, excel_row_numbers }`
 * Excel: `{ workbook, sheet, columns, rows_written, row_hash, excel_row_numbers }`
+
 
 ---
 
