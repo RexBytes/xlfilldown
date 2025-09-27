@@ -962,6 +962,179 @@ def test_cli_version_flag(tmp_path):
     assert r.returncode == 0
     assert r.stdout.strip()
 
+# --- New tests for API-only letters support (no CLI involved) ---
+
+def _mk_letters_wb(tmp_path: Path, title="S"):
+    p = tmp_path / "letters_api.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = title
+    ws.append(["Grp", "Val", "Note"])   # A, B, C
+    ws.append(["g1", None, "n1"])
+    ws.append([None, "v2", "n2"])
+    wb.save(p); wb.close()
+    return p
+
+
+def test_api_fill_cols_letters_sqlite_happy_path(tmp_path):
+    """fill_cols_letters maps letters → headers for the API (SQLite path)."""
+    infile = _mk_letters_wb(tmp_path)
+    db = tmp_path / "letters_api.db"
+
+    summary = ingest_excel_to_sqlite(
+        file=infile,
+        sheet="S",
+        header_row=1,
+        fill_cols_letters=["A"],     # => "Grp"
+        db=db,
+        table="t",
+        if_exists="replace",
+    )
+    assert summary["rows_ingested"] == 2
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "Grp","Val","Note" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("g1", None, "n1"), ("g1", "v2", "n2")]  # "Grp" filled down
+
+
+def test_api_fill_cols_letters_excel_happy_path(tmp_path):
+    """fill_cols_letters also works for the Excel writer path."""
+    infile = _mk_letters_wb(tmp_path)
+    out = tmp_path / "letters_api_out.xlsx"
+
+    s = ingest_excel_to_excel(
+        file=infile,
+        sheet="S",
+        header_row=1,
+        fill_cols_letters=["A"],     # => "Grp"
+        outfile=out,
+        outsheet="Processed",
+        if_exists="replace",
+    )
+    assert s["rows_written"] == 2
+    wb = openpyxl.load_workbook(out)
+    ws = wb["Processed"]
+    data = [[c.value for c in r] for r in ws.iter_rows(min_row=2, max_row=3)]
+    assert data == [["g1", None, "n1"], ["g1", "v2", "n2"]]
+    wb.close()
+
+
+def test_api_require_non_null_letters_merges_with_names(tmp_path):
+    """
+    require_non_null_letters should merge (order-preserving, de-duped) with require_non_null (names).
+    Behavior-wise, row must satisfy the final merged set after padding.
+    """
+    p = tmp_path / "req_letters_merge.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws.append(["Grp", "A", "B"])  # A,B,C letters → Grp,A,B
+    ws.append([None, "x", None])  # drop: Grp missing (A present)
+    ws.append(["g1", None, "y"])  # keep: Grp present & B present
+    wb.save(p); wb.close()
+
+    db = tmp_path / "req_letters_merge.db"
+    ingest_excel_to_sqlite(
+        file=p,
+        sheet="S",
+        header_row=1,
+        fill_cols=["Grp"],
+        require_non_null=["B"],              # name
+        require_non_null_letters=["A"],      # letter "A" -> "Grp"
+        db=db,
+        table="t",
+        if_exists="replace",
+    )
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "Grp","A","B" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("g1", None, "y")]      # first row dropped; second kept
+
+
+def test_api_fill_cols_and_fill_cols_letters_mutually_exclusive(tmp_path):
+    infile = _mk_letters_wb(tmp_path)
+    with pytest.raises(ValueError, match="only one of fill_cols or fill_cols_letters"):
+        ingest_excel_to_sqlite(
+            file=infile,
+            sheet="S",
+            header_row=1,
+            fill_cols=["Grp"],
+            fill_cols_letters=["A"],
+            db=tmp_path / "me.db",
+        )
+
+
+def test_api_fill_cols_letters_empty_header_errors(tmp_path):
+    """Letters pointing at an empty/whitespace header cell should raise a clear error."""
+    p = tmp_path / "empty_hdr.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws.append(["A", "   ", "C"])  # column B header normalizes to empty
+    ws.append(["x", "y", "z"])
+    wb.save(p); wb.close()
+
+    with pytest.raises(ValueError, match="refers to an empty header cell"):
+        ingest_excel_to_sqlite(
+            file=p,
+            sheet="S",
+            header_row=1,
+            fill_cols_letters=["B"],      # points to empty header after normalization
+            db=tmp_path / "eh.db",
+        )
+
+
+def test_api_fill_cols_letters_out_of_range_errors(tmp_path):
+    """Letters beyond header width should raise with context (row/sheet/width hint)."""
+    p = tmp_path / "oor_hdr.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws.append(["Only"])
+    ws.append(["x"])
+    wb.save(p); wb.close()
+
+    with pytest.raises(ValueError) as ei:
+        ingest_excel_to_sqlite(
+            file=p,
+            sheet="S",
+            header_row=1,
+            fill_cols_letters=["ZZ"],   # out of range
+            db=tmp_path / "oor.db",
+        )
+    msg = str(ei.value)
+    assert "out of range" in msg and "header row 1" in msg and "only headered columns are ingested" in msg
+
+
+def test_api_require_non_null_letters_dedup_and_order(tmp_path):
+    """
+    If the same header is specified in both names and letters, final set should de-dup,
+    but behavior should still enforce all unique headers.
+    """
+    p = tmp_path / "req_dedup.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws.append(["H1", "H2", "V"])
+    ws.append([None, None, "x"])    # drop: H1 and H2 missing
+    ws.append(["a", None, "y"])     # drop: H2 missing
+    ws.append(["a", "b", "z"])      # keep
+    wb.save(p); wb.close()
+
+    db = tmp_path / "req_dedup.db"
+    ingest_excel_to_sqlite(
+        file=p,
+        sheet="S",
+        header_row=1,
+        fill_cols=["H1", "H2"],
+        require_non_null=["H2", "H1", "H2"],     # names with duplicates
+        require_non_null_letters=["A"],          # "H1" again via letter
+        db=db,
+        table="t",
+        if_exists="replace",
+    )
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "H1","H2","V" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("a", "b", "z")]  # only the row satisfying both H1 & H2 remains
+
 
 
 

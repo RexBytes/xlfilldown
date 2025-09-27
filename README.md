@@ -238,7 +238,9 @@ summary = ingest_excel_to_sqlite(
     db="out.db",
     table=None,
     drop_blank_rows=True,
-    require_non_null=["columnname1", "columnname2"],
+    # choose one (or both, merged & de-duped):
+    require_non_null=["columnname1", "columnname2"],               # by header names
+    # require_non_null_letters=["A", "B"],                         # or by Excel letters
     row_hash=True,
     excel_row_numbers=True,
     if_exists="replace",
@@ -258,12 +260,14 @@ summary = ingest_excel_to_excel(
     outsheet=None,
     drop_blank_rows=True,
     require_non_null=["columnname1", "columnname2"],
+    # or: require_non_null_letters=["A", "B"],
     row_hash=True,
     excel_row_numbers=True,
     if_exists="replace",
     fill_mode="independent",     # independent (pandas-style) fill
     # fill_mode="hierarchical",  # hierarchical (default)
 )
+
 ````
 
 **Return fields**
