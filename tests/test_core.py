@@ -1136,6 +1136,189 @@ def test_api_require_non_null_letters_dedup_and_order(tmp_path):
     assert rows == [("a", "b", "z")]  # only the row satisfying both H1 & H2 remains
 
 
+# -----------------------------
+# Raw ingest mode tests
+# -----------------------------
+
+def _mk_raw_wb(tmp_path: Path, title="S"):
+    p = tmp_path / "raw_in.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = title
+    ws.append(["A", "B"])            # header row
+    ws.append(["x", None])           # row 2
+    ws.append([None, "y"])           # row 3
+    ws.append([None, None])          # row 4 (completely empty)
+    wb.save(p); wb.close()
+    return p
+
+
+def test_raw_sqlite_no_fill_with_audit_columns(tmp_path):
+    infile = _mk_raw_wb(tmp_path)
+    db = tmp_path / "raw.db"
+
+    summary = ingest_excel_to_sqlite(
+        file=infile, sheet="S", header_row=1,
+        ingest_mode="raw",                  # <-- NEW
+        db=db, table="t",
+        row_hash=True, excel_row_numbers=True,
+        if_exists="replace",
+    )
+    assert summary["rows_ingested"] == 3  # rows 2,3,4 (we do not drop blank by default)
+    assert summary["row_hash"] is True and summary["excel_row_numbers"] is True
+
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT row_hash, excel_row, "A","B" FROM t ORDER BY excel_row').fetchall()
+
+    # No fill-down should occur
+    # Row 2: ["x", None]
+    expected2 = sha256_hex(canon_list(["x", None]))
+    # Row 3: [None, "y"]
+    expected3 = sha256_hex(canon_list([None, "y"]))
+    # Row 4: [None, None] (completely empty row)
+    expected4 = sha256_hex(canon_list([None, None]))
+
+    assert rows == [
+        (expected2, "2", "x", None),
+        (expected3, "3", None, "y"),
+        (expected4, "4", None, None),
+    ]
+
+
+def test_raw_excel_no_fill_with_audit_columns(tmp_path):
+    infile = _mk_raw_wb(tmp_path)
+    outfile = tmp_path / "raw.xlsx"
+
+    summary = ingest_excel_to_excel(
+        file=infile, sheet="S", header_row=1,
+        ingest_mode="raw",                  # <-- NEW
+        outfile=outfile, outsheet="RawOut",
+        row_hash=True, excel_row_numbers=True,
+        if_exists="replace",
+    )
+    assert summary["sheet"] == "RawOut"
+    assert summary["rows_written"] == 3  # rows 2,3,4
+
+    wb = openpyxl.load_workbook(outfile)
+    try:
+        ws = wb["RawOut"]
+        header = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        assert header == ["row_hash", "excel_row", "A", "B"]
+
+        data = [[c.value for c in r] for r in ws.iter_rows(min_row=2, max_row=4)]
+        # Recompute expected hashes
+        h2 = sha256_hex(canon_list(["x", None]))
+        h3 = sha256_hex(canon_list([None, "y"]))
+        h4 = sha256_hex(canon_list([None, None]))
+        assert data == [
+            [h2, "2", "x", None],
+            [h3, "3", None, "y"],
+            [h4, "4", None, None],
+        ]
+    finally:
+        wb.close()
+
+
+def test_raw_mode_drop_blank_and_require_non_null(tmp_path):
+    # Build a sheet where require_non_null and drop_blank_rows matter
+    p = tmp_path / "raw_filters.xlsx"
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws.append(["Grp", "Val"])
+    ws.append([None, None])   # row 2: completely empty -> dropped by drop_blank_rows=True
+    ws.append(["g1", None])   # row 3: kept unless require_non_null=["Val"]
+    ws.append([None, "v1"])   # row 4: kept unless require_non_null=["Grp"]
+    ws.append(["g2", "v2"])   # row 5: always kept
+    wb.save(p); wb.close()
+
+    db = tmp_path / "raw_filters.db"
+    # In raw mode, padding is off. Filters still apply AFTER "no padding".
+    s = ingest_excel_to_sqlite(
+        file=p, sheet="S", header_row=1,
+        ingest_mode="raw",
+        db=db, table="t",
+        drop_blank_rows=True,                 # drop the completely empty row 2
+        require_non_null=["Grp","Val"],       # keep only rows where both present (rows 5)
+        if_exists="replace",
+    )
+    assert s["rows_ingested"] == 1
+
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "Grp","Val" FROM t').fetchall()
+    assert rows == [("g2", "v2")]
+
+
+def test_raw_mode_ignores_fill_cols_and_fill_mode(tmp_path):
+    infile = _mk_raw_wb(tmp_path)
+    db = tmp_path / "raw_ignore.db"
+
+    # Even if we pass fill options, raw mode must not fill anything
+    s = ingest_excel_to_sqlite(
+        file=infile, sheet="S", header_row=1,
+        ingest_mode="raw",
+        fill_cols=["A", "B"],                 # should be ignored
+        fill_mode="hierarchical",             # should be ignored
+        db=db, table="t",
+        if_exists="replace",
+    )
+    assert s["rows_ingested"] == 3
+
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "A","B" FROM t ORDER BY rowid').fetchall()
+    # No fill-down: matches source rows 2..4 exactly
+    assert rows == [("x", None), (None, "y"), (None, None)]
+
+
+def test_cli_raw_db_no_fillcols_required(tmp_path):
+    infile = _mk_raw_wb(tmp_path, title="Sheet1")
+    db = tmp_path / "cli_raw.db"
+
+    # No --fill-cols / --fill-cols-letters needed in raw mode
+    cmd = [
+        sys.executable, "-m", "xlfilldown.cli", "db",
+        "--infile", str(infile),
+        "--insheet", "Sheet1",
+        "--header-row", "1",
+        "--db", str(db),
+        "--table", "t",
+        "--ingest-mode", "raw",
+        "--if-exists", "replace",
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+    with sqlite3.connect(str(db)) as conn:
+        rows = conn.execute('SELECT "A","B" FROM t ORDER BY rowid').fetchall()
+    assert rows == [("x", None), (None, "y"), (None, None)]
+
+
+def test_cli_raw_xlsx_no_fillcols_required(tmp_path):
+    infile = _mk_raw_wb(tmp_path, title="S1")
+    out = tmp_path / "cli_raw.xlsx"
+
+    cmd = [
+        sys.executable, "-m", "xlfilldown.cli", "xlsx",
+        "--infile", str(infile),
+        "--insheet", "S1",
+        "--header-row", "1",
+        "--outfile", str(out),
+        "--outsheet", "RawOut",
+        "--ingest-mode", "raw",
+        "--if-exists", "replace",
+    ]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+    wb = openpyxl.load_workbook(out)
+    try:
+        ws = wb["RawOut"]
+        data = [[c.value for c in r] for r in ws.iter_rows(min_row=2, max_row=4)]
+        assert data == [["x", None], [None, "y"], [None, None]]
+    finally:
+        wb.close()
+
+
 
 
 

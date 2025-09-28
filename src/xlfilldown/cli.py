@@ -157,6 +157,16 @@ def _shared_args(sub: argparse.ArgumentParser) -> None:
         default="fail",
         help="Behavior if the destination already exists (DB table or Excel sheet).",
     )
+    sub.add_argument(
+        "--ingest-mode",
+        choices=["fill", "raw"],
+        default="fill",
+        help=(
+            "Ingestion strategy. 'fill' (default) applies forward-fill per --fill-cols/letters "
+            "and --fill-mode. 'raw' skips fill-down entirely and writes rows as-is while still "
+            "supporting --row-hash, --excel-row-numbers, --drop-blank-rows, and --require-non-null."
+        ),
+    )
 
 
 
@@ -209,27 +219,34 @@ def main() -> None:
     if getattr(args, "header_row", None) is not None and args.header_row < 1:
         raise SystemExit("--header-row must be >= 1.")
 
-    # Resolve fill columns: either by explicit JSON header names OR by column letters
-    if getattr(args, "fill_cols_letters", None) and args.fill_cols:
-        raise SystemExit("Use only one of --fill-cols or --fill-cols-letters, not both.")
-
-    if getattr(args, "fill_cols_letters", None):
-        pad_cols = _resolve_headers_from_letters(
-            infile=args.infile,
-            insheet=args.insheet,
-            header_row=args.header_row,
-            letters=args.fill_cols_letters,
-        )
-    elif args.fill_cols is not None:
-        pad_cols = _parse_json_list(args.fill_cols, "--fill-cols")
-        if not pad_cols:
-            raise SystemExit("--fill-cols cannot be empty; provide at least one header name.")
+    # Resolve fill columns depending on ingest mode
+    if args.ingest_mode == "raw":
+        # Raw mode: ignore any --fill-cols / --fill-cols-letters; no fill-down
+        pad_cols = []
     else:
-        # Neither option provided
-        raise SystemExit(
-            "You must provide either --fill-cols (JSON header names) or --fill-cols-letters (Excel column letters). "
-            "Example: --fill-cols '[\"Tier 1\",\"Tier 2\"]'  or  --fill-cols-letters A C AE"
-        )
+        # Fill mode: require either names (JSON) or letters
+        if getattr(args, "fill_cols_letters", None) and args.fill_cols:
+            raise SystemExit("Use only one of --fill-cols or --fill-cols-letters, not both.")
+
+        if getattr(args, "fill_cols_letters", None):
+            pad_cols = _resolve_headers_from_letters(
+                infile=args.infile,
+                insheet=args.insheet,
+                header_row=args.header_row,
+                letters=args.fill_cols_letters,
+            )
+        elif args.fill_cols is not None:
+            pad_cols = _parse_json_list(args.fill_cols, "--fill-cols")
+            if not pad_cols:
+                raise SystemExit("--fill-cols cannot be empty; provide at least one header name.")
+        else:
+            # Neither option provided in fill mode
+            raise SystemExit(
+                "You must provide either --fill-cols (JSON header names) or --fill-cols-letters (Excel column letters) "
+                "when --ingest-mode=fill. Example: --fill-cols '[\"Tier 1\",\"Tier 2\"]'  or  --fill-cols-letters A C AE\n"
+                "Tip: use --ingest-mode raw to skip fill-down entirely."
+            )
+
 
     # Resolve required_non_null by names + letters (additive)
     required_non_null = _parse_json_list(args.require_non_null, "--require-non-null") if args.require_non_null else []
@@ -261,6 +278,7 @@ def main() -> None:
             if_exists=args.if_exists,
             batch_size=args.batch_size,
             pad_hierarchical=pad_hierarchical,
+            ingest_mode=args.ingest_mode,
         )
 
         cols = len(summary["columns"])
@@ -290,6 +308,7 @@ def main() -> None:
             excel_row_numbers=args.excel_row_numbers,
             if_exists=args.if_exists,
             pad_hierarchical=pad_hierarchical,
+            ingest_mode=args.ingest_mode,
         )
 
         cols = len(summary["columns"])

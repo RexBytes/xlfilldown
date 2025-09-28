@@ -149,12 +149,23 @@ def _resolve_fill_cols(
     fill_cols: Optional[Sequence[str]] = None,
     fill_cols_letters: Optional[Sequence[str]] = None,
     pad_cols: Optional[Sequence[str]] = None,
+    ingest_mode: Optional[str] = None,
 ) -> Sequence[str]:
     """
     Returns the list of column names to fill.
-    - Prefer new API: fill_cols OR fill_cols_letters (mutually exclusive).
-    - Fallback to old API: pad_cols (names only).
+
+    Modes:
+      - ingest_mode == "raw"  -> skip fill entirely (return [])
+      - default ("fill")      -> resolve as before
+
+    Resolution priority in "fill" mode:
+      - NEW API: fill_cols OR fill_cols_letters (mutually exclusive)
+      - OLD API: pad_cols (names only)
+      - Otherwise: []
     """
+    if ingest_mode and str(ingest_mode).strip().lower() == "raw":
+        return []
+
     if fill_cols is not None and fill_cols_letters is not None:
         raise ValueError("Use only one of fill_cols or fill_cols_letters.")
 
@@ -172,6 +183,7 @@ def _resolve_fill_cols(
 
     # Let core handle empty/missing errors in its usual way.
     return []
+
 
 
 def _resolve_require_non_null(
@@ -205,6 +217,7 @@ def ingest_excel_to_sqlite(
     fill_cols_letters: Optional[Sequence[str]] = None,
     fill_mode: Optional[str] = None,
     require_non_null_letters: Optional[Sequence[str]] = None,
+    ingest_mode: str = "fill",   # <-- NEW
     # OLD API (aliases)
     pad_cols: Optional[Sequence[str]] = None,
     pad_hierarchical: Optional[bool] = None,
@@ -222,6 +235,10 @@ def ingest_excel_to_sqlite(
     """
     API wrapper that mirrors the CLI terms (fill_cols/_letters, fill_mode) while remaining
     backward-compatible with pad_cols / pad_hierarchical.
+
+    ingest_mode:
+      - "fill" (default): existing behavior (may require fill columns upstream)
+      - "raw": skip all fill/down-carry logic (pad_cols becomes [])
     """
     cols = _resolve_fill_cols(
         file=file,
@@ -230,6 +247,7 @@ def ingest_excel_to_sqlite(
         fill_cols=fill_cols,
         fill_cols_letters=fill_cols_letters,
         pad_cols=pad_cols,
+        ingest_mode=ingest_mode,   # NEW
     )
     hierarchical = _resolve_fill_mode(fill_mode=fill_mode, pad_hierarchical=pad_hierarchical)
     req_non_null = _resolve_require_non_null(
@@ -259,6 +277,7 @@ def ingest_excel_to_sqlite(
     )
 
 
+
 def ingest_excel_to_excel(
     *,
     file: Union[str, PathLike[str]],
@@ -269,6 +288,7 @@ def ingest_excel_to_excel(
     fill_cols_letters: Optional[Sequence[str]] = None,
     fill_mode: Optional[str] = None,
     require_non_null_letters: Optional[Sequence[str]] = None,
+    ingest_mode: str = "fill",   # <-- NEW
     # OLD API (aliases)
     pad_cols: Optional[Sequence[str]] = None,
     pad_hierarchical: Optional[bool] = None,
@@ -285,6 +305,10 @@ def ingest_excel_to_excel(
     """
     API wrapper that mirrors the CLI terms (fill_cols/_letters, fill_mode) while remaining
     backward-compatible with pad_cols / pad_hierarchical.
+
+    ingest_mode:
+      - "fill" (default): existing behavior
+      - "raw": skip all fill/down-carry logic (pad_cols becomes [])
     """
     cols = _resolve_fill_cols(
         file=file,
@@ -293,6 +317,7 @@ def ingest_excel_to_excel(
         fill_cols=fill_cols,
         fill_cols_letters=fill_cols_letters,
         pad_cols=pad_cols,
+        ingest_mode=ingest_mode,   # NEW
     )
     hierarchical = _resolve_fill_mode(fill_mode=fill_mode, pad_hierarchical=pad_hierarchical)
     req_non_null = _resolve_require_non_null(
@@ -318,5 +343,6 @@ def ingest_excel_to_excel(
         pad_hierarchical=hierarchical,
         **kwargs,
     )
+
 
 

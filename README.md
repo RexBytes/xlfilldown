@@ -277,6 +277,69 @@ summary = ingest_excel_to_excel(
 
 
 ---
+## Raw Ingest Examples
+
+Sometimes you may want to ingest a sheet *exactly as-is*, without applying any fill-down logic.  
+This is useful if you just want to load the data into SQLite or Excel with audit columns (`row_hash`, `excel_row`) and handle nulls/blanks later.
+
+---
+
+### CLI: Raw ingest to SQLite
+```bash
+xlfilldown db \
+  --infile data.xlsx --insheet Sheet1 --header-row 1 \
+  --db out.db --table raw_ingest \
+  --ingest-mode raw \
+  --row-hash --excel-row-numbers --if-exists replace
+````
+
+---
+
+### CLI: Raw ingest to Excel
+
+```bash
+xlfilldown xlsx \
+  --infile data.xlsx --insheet Sheet1 --header-row 1 \
+  --outfile out.xlsx --outsheet RawSheet \
+  --ingest-mode raw \
+  --row-hash --excel-row-numbers --if-exists replace
+```
+
+---
+
+### Python API: Raw ingest to SQLite
+
+```python
+from xlfilldown.api import ingest_excel_to_sqlite
+
+summary = ingest_excel_to_sqlite(
+    file="data.xlsx", sheet="Sheet1", header_row=1,
+    ingest_mode="raw",                      # skip fill-down
+    db="out.db", table="raw_ingest",
+    row_hash=True, excel_row_numbers=True,
+    if_exists="replace",
+)
+print(summary)
+```
+
+---
+
+### Python API: Raw ingest to Excel
+
+```python
+from xlfilldown.api import ingest_excel_to_excel
+
+summary = ingest_excel_to_excel(
+    file="data.xlsx", sheet="Sheet1", header_row=1,
+    ingest_mode="raw",                      # skip fill-down
+    outfile="out.xlsx", outsheet="RawSheet",
+    row_hash=True, excel_row_numbers=True,
+    if_exists="replace",
+)
+print(summary)
+```
+
+
 
 ## Notes
 
