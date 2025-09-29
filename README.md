@@ -3,6 +3,10 @@
 [![PyPI version](https://img.shields.io/pypi/v/xlfilldown.svg)](https://pypi.org/project/xlfilldown/)
 [![Python versions](https://img.shields.io/pypi/pyversions/xlfilldown.svg)](https://pypi.org/project/xlfilldown/)
 [![License](https://img.shields.io/pypi/l/xlfilldown.svg)](https://github.com/RexBytes/xlfilldown/blob/main/LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-guide-blue.svg)](https://rexbytes.com/2025/09/23/xlfilldown-the-complete-guide/)
+[![Downloads](https://static.pepy.tech/badge/xlfilldown)](https://pepy.tech/project/xlfilldown)
+[![Changelog](https://img.shields.io/badge/changelog-releases-orange.svg)](https://github.com/RexBytes/xlfilldown/releases)
+
 
 Stream an Excel sheet into **SQLite** or a new **Excel** sheet in constant memory. Forward-fill selected columns by **header name**, preserve original Excel row numbers, and compute a stable **SHA-256 row hash**.
 
