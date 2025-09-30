@@ -353,3 +353,46 @@ print(summary)
 ## License
 
 MIT © RexBytes
+
+## Proof of Ownership
+
+Woof woof!
+
+RexBytes here — author, creator, and maintainer of this project.  
+I don't know any secret handshakes, so here’s a signed dog tag instead.
+
+```
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+woof woof!
+
+RexBytes here - author, creator, and maintainer of project xlfilldown.
+
+In case we ever meet at the same park, I'll show you my signed dog tag to say hello.
+
+Signed on: 2025-10-01
+
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQT8gR2B/yYm6t41oRy0jpEjfRE3bwUCaNwumAAKCRC0jpEjfRE3
+b9hPAP43wgEP/kKM5cAEFxzSvsFEEjYtVWCTDLAZMe4IDEfzdQD/QXHbQg2WRTMP
+Nq2fPFhHzdTJd7/3HjI/GyLWVR5kmQ0=
+=KYYE
+-----END PGP SIGNATURE-----
+```
+
+## Donations
+
+This little package started as a way to scratch my own itch.
+Turns out, it saved me from countless Excel headaches 🧹📊.  
+
+If xlfilldown also makes your life easier, and you feel like tossing a treat into the dog bowl,  
+you can send a few sats my way 🐶🍺.  
+
+**BTC (Bech32):** `bc1qk2d5cnn5xlnerxq3fcfrsnutzqmye0fe020rdd`
+
+Totally optional. I’ll only use it for beer, toys, maybe even more coding.  
+Either way, I hope xlfilldown helps flatten your spreadsheets and your stress. 🐾
+
+
