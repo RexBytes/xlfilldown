@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/pypi/l/xlfilldown.svg)](https://github.com/RexBytes/xlfilldown/blob/main/LICENSE)
 [![Documentation](https://img.shields.io/badge/docs-guide-blue.svg)](https://rexbytes.com/2025/09/23/xlfilldown-the-complete-guide/)
 [![Downloads](https://static.pepy.tech/badge/xlfilldown)](https://pepy.tech/project/xlfilldown)
+[![Socket Badge](https://badge.socket.dev/pypi/package/xlfilldown/1.0.1?artifact_id=tar-gz)](https://badge.socket.dev/pypi/package/xlfilldown/1.0.1?artifact_id=tar-gz)
 [![Changelog](https://img.shields.io/badge/changelog-releases-orange.svg)](https://github.com/RexBytes/xlfilldown/releases)
 
 
