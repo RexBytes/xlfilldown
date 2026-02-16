@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Best Practices - xlfilldown</title>
+<meta name="description" content="Best practice recipes and usage patterns for xlfilldown: Flask integration, pipeline automation, data quality checks, and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1a1a2e;
+  line-height: 1.7;
+  background: #fff;
+}
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Consolas', monospace; }
+
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 0 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.header-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; height: 60px;
+}
+.logo { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.logo span { color: #60a5fa; }
+nav { display: flex; gap: 24px; align-items: center; }
+nav a { color: #cbd5e1; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; text-decoration: none; }
+nav a:hover, nav a.active { color: #fff; text-decoration: none; }
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+.nav-toggle span { display: block; width: 22px; height: 2px; background: #cbd5e1; margin: 5px 0; }
+
+.page-banner {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 56px 24px 48px; text-align: center;
+}
+.page-banner h1 { font-size: 2.4rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.page-banner p { color: #94a3b8; font-size: 1.05rem; max-width: 600px; margin: 0 auto; }
+
+.content { max-width: 960px; margin: 0 auto; padding: 48px 24px 72px; }
+
+code.inline {
+  background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;
+}
+pre.code-block {
+  background: #1e293b; color: #e2e8f0; border-radius: 10px;
+  padding: 20px 24px; overflow-x: auto; font-size: 0.85rem; line-height: 1.7; margin-bottom: 0;
+}
+.kw, .keyword { color: #93c5fd; }
+.fn { color: #fbbf24; }
+.st, .string { color: #86efac; }
+.cm, .comment { color: #64748b; }
+.op { color: #f472b6; }
+.nb { color: #c4b5fd; }
+
+/* Recipe cards */
+.recipe {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.recipe h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.recipe p {
+  color: #475569;
+  font-size: 0.93rem;
+  margin-bottom: 14px;
+}
+.recipe p:last-child { margin-bottom: 0; }
+
+/* Tags */
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+.tag-cli { background: #dbeafe; color: #1e40af; }
+.tag-python { background: #fef3c7; color: #92400e; }
+.tag-pipeline { background: #dcfce7; color: #166534; }
+.tag-pattern { background: #ede9fe; color: #5b21b6; }
+.tag-quality { background: #fce7f3; color: #9d174d; }
+.tag-integration { background: #ffedd5; color: #9a3412; }
+
+h2 {
+  font-size: 1.6rem; font-weight: 700; color: #1e3a5f;
+  margin-top: 56px; margin-bottom: 20px;
+  padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;
+}
+h2:first-of-type { margin-top: 0; }
+
+.section-intro {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin-bottom: 28px;
+}
+
+/* Summary table */
+.ref-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 0.88rem; }
+.ref-table th {
+  background: #1e3a5f; color: #fff; font-weight: 600;
+  padding: 10px 14px; text-align: left; font-size: 0.85rem;
+}
+.ref-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #374151; vertical-align: top; }
+.ref-table tr:nth-child(even) td { background: #f1f5f9; }
+.ref-table tr:hover td { background: #e8f0fe; }
+
+.note {
+  background: #f0f9ff; border-left: 4px solid #2563eb;
+  padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px;
+}
+.note p { margin-bottom: 0; color: #1e3a5f; font-size: 0.9rem; }
+
+.site-footer {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 48px 24px 32px; color: #94a3b8; font-size: 0.85rem;
+}
+.footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
+.footer-brand h3 { color: #fff; font-size: 1.1rem; margin-bottom: 8px; }
+.footer-brand h3 span { color: #60a5fa; }
+.footer-links h4 { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 12px; }
+.footer-links a { color: #94a3b8; display: block; margin-bottom: 6px; font-size: 0.85rem; }
+.footer-links a:hover { color: #fff; text-decoration: none; }
+.footer-bottom {
+  max-width: 1100px; margin: 32px auto 0; padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.disclaimer { color: #64748b; font-size: 0.78rem; max-width: 600px; line-height: 1.5; }
+
+@media (max-width: 768px) {
+  .page-banner h1 { font-size: 1.8rem; }
+  .content { padding: 32px 16px 48px; }
+  .recipe { padding: 20px; }
+  .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+  .nav-toggle { display: block; }
+  nav.nav-closed { display: none; }
+  nav.nav-open { display: flex; width: 100%; padding: 12px 0; flex-wrap: wrap; justify-content: center; }
+  h2 { font-size: 1.35rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">xlf<span>ill</span>down</a>
+    <button class="nav-toggle" onclick="document.querySelector('nav').classList.toggle('nav-open');document.querySelector('nav').classList.toggle('nav-closed')" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="reference.html">Reference</a>
+      <a href="best_practices.html" class="active">Best Practices</a>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-banner">
+  <h1>Best Practices</h1>
+  <p>Recipes, patterns, and integration guides for getting the most out of xlfilldown.</p>
+</section>
+
+<div class="content">
+
+  <!-- CLI Recipes -->
+  <h2>CLI Recipes</h2>
+  <p class="section-intro">Common command-line patterns for everyday use.</p>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Basic hierarchical fill to SQLite</h3>
+    <p>The most common use case: a grouped .xlsx export with Region/Country/City hierarchy. Fill down, add audit columns, and load into SQLite.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">quarterly_sales.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Q4 Data"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country","City"]'</span> \
+    <span class="op">--db</span> <span class="string">sales.db</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span> \
+    <span class="op">--drop-blank-rows</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Independent fill using column letters</h3>
+    <p>When columns are independent (not hierarchical), use independent mode. Reference columns by their Excel letter instead of header names - useful when headers are long or contain special characters.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown xlsx \
+    <span class="op">--infile</span> <span class="string">inventory.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Stock"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols-letters</span> <span class="nb">A C E</span> \
+    <span class="op">--fill-mode</span> <span class="string">independent</span> \
+    <span class="op">--outfile</span> <span class="string">inventory_filled.xlsx</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Replace an existing table on re-run</h3>
+    <p>When running the same ingest repeatedly (e.g. weekly report refresh), use <code class="inline">--if-exists replace</code> to drop and recreate the table each time.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">weekly_report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Data"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Department","Team"]'</span> \
+    <span class="op">--db</span> <span class="string">reports.db</span> \
+    <span class="op">--table</span> <span class="string">weekly_headcount</span> \
+    <span class="op">--if-exists</span> <span class="string">replace</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Append incremental data</h3>
+    <p>For incremental loads where each run adds new rows (e.g. monthly exports appended to an annual table).</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">march_data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Category","Subcategory"]'</span> \
+    <span class="op">--db</span> <span class="string">annual.db</span> \
+    <span class="op">--table</span> <span class="string">transactions</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span> \
+    <span class="op">--if-exists</span> <span class="string">append</span></pre>
+    <div class="note">
+      <p><strong>Note:</strong> When appending, the existing table schema must exactly match the expected columns (including <code class="inline">row_hash</code> and <code class="inline">excel_row</code> if enabled). xlfilldown validates this before inserting.</p>
+    </div>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Raw ingest for audit baseline</h3>
+    <p>Load a sheet exactly as-is (no fill-down) but with audit columns. Useful for keeping a raw copy alongside the filled version for comparison.</p>
+    <pre class="code-block"><span class="comment"># Raw copy</span>
+<span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> <span class="op">--insheet</span> <span class="string">"Sheet1"</span> <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--ingest-mode</span> <span class="string">raw</span> \
+    <span class="op">--db</span> <span class="string">audit.db</span> <span class="op">--table</span> <span class="string">raw_data</span> \
+    <span class="op">--row-hash</span> <span class="op">--excel-row-numbers</span> <span class="op">--if-exists</span> <span class="string">replace</span>
+
+<span class="comment"># Filled copy in the same database</span>
+<span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> <span class="op">--insheet</span> <span class="string">"Sheet1"</span> <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country"]'</span> \
+    <span class="op">--db</span> <span class="string">audit.db</span> <span class="op">--table</span> <span class="string">filled_data</span> \
+    <span class="op">--row-hash</span> <span class="op">--excel-row-numbers</span> <span class="op">--if-exists</span> <span class="string">replace</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-cli">CLI</span>
+    <h3>Filter rows with require-non-null</h3>
+    <p>Drop rows where critical columns are blank after filling. Combine with <code class="inline">--drop-blank-rows</code> to also remove spacer rows.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Financials"</span> \
+    <span class="op">--header-row</span> <span class="nb">3</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Division","BU"]'</span> \
+    <span class="op">--drop-blank-rows</span> \
+    <span class="op">--require-non-null</span> <span class="string">'["Division","Amount"]'</span> \
+    <span class="op">--db</span> <span class="string">clean.db</span></pre>
+  </div>
+
+  <!-- Python API Recipes -->
+  <h2>Python API Recipes</h2>
+  <p class="section-intro">Using xlfilldown programmatically in scripts and applications.</p>
+
+  <div class="recipe">
+    <span class="tag tag-python">Python</span>
+    <h3>Basic script usage</h3>
+    <p>The simplest way to use xlfilldown in a Python script. Two lines to go from messy .xlsx to clean SQLite.</p>
+    <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+summary = <span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"report.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+    db=<span class="string">"output.db"</span>,
+    row_hash=<span class="nb">True</span>,
+    excel_row_numbers=<span class="nb">True</span>,
+    if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="nb">print</span>(<span class="string">f"Ingested </span>{summary[<span class="string">'rows_ingested'</span>]}<span class="string"> rows into </span>{summary[<span class="string">'table'</span>]}<span class="string">"</span>)
+<span class="nb">print</span>(<span class="string">f"Columns: </span>{summary[<span class="string">'columns'</span>]}<span class="string">"</span>)</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-python">Python</span>
+    <h3>Excel-to-Excel transformation</h3>
+    <p>Read a messy .xlsx, fill it down, and write a clean .xlsx. No database involved.</p>
+    <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_excel</span>
+
+summary = <span class="fn">ingest_excel_to_excel</span>(
+    file=<span class="string">"raw_export.xlsx"</span>,
+    sheet=<span class="string">"Data"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Department"</span>, <span class="string">"Team"</span>, <span class="string">"Role"</span>],
+    fill_mode=<span class="string">"hierarchical"</span>,
+    outfile=<span class="string">"clean_export.xlsx"</span>,
+    outsheet=<span class="string">"Filled"</span>,
+    drop_blank_rows=<span class="nb">True</span>,
+    if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="nb">print</span>(<span class="string">f"Wrote </span>{summary[<span class="string">'rows_written'</span>]}<span class="string"> rows"</span>)</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-python">Python</span>
+    <h3>Process multiple sheets from one workbook</h3>
+    <p>Loop through several sheets and load each into its own SQLite table.</p>
+    <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+sheets = [
+    (<span class="string">"North America"</span>, [<span class="string">"Country"</span>, <span class="string">"State"</span>]),
+    (<span class="string">"EMEA"</span>, [<span class="string">"Country"</span>, <span class="string">"City"</span>]),
+    (<span class="string">"APAC"</span>, [<span class="string">"Country"</span>, <span class="string">"Region"</span>]),
+]
+
+<span class="kw">for</span> sheet_name, cols <span class="kw">in</span> sheets:
+    summary = <span class="fn">ingest_excel_to_sqlite</span>(
+        file=<span class="string">"global_sales.xlsx"</span>,
+        sheet=sheet_name,
+        header_row=<span class="nb">1</span>,
+        fill_cols=cols,
+        db=<span class="string">"sales.db"</span>,
+        row_hash=<span class="nb">True</span>,
+        if_exists=<span class="string">"replace"</span>,
+    )
+    <span class="nb">print</span>(<span class="string">f"</span>{sheet_name}<span class="string">: </span>{summary[<span class="string">'rows_ingested'</span>]}<span class="string"> rows"</span>)</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-python">Python</span>
+    <h3>Using column letters in the API</h3>
+    <p>When you know column positions but not header names (common with inconsistent exports), use <code class="inline">fill_cols_letters</code>.</p>
+    <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+summary = <span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"messy_export.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">2</span>,                   <span class="comment"># Headers on row 2</span>
+    fill_cols_letters=[<span class="string">"A"</span>, <span class="string">"B"</span>, <span class="string">"C"</span>],  <span class="comment"># First three columns</span>
+    db=<span class="string">"output.db"</span>,
+    if_exists=<span class="string">"replace"</span>,
+)</pre>
+  </div>
+
+  <!-- Integration Patterns -->
+  <h2>Integration Patterns</h2>
+  <p class="section-intro">Embed xlfilldown into web apps, pipelines, and automation workflows.</p>
+
+  <div class="recipe">
+    <span class="tag tag-integration">Flask</span>
+    <h3>Flask upload endpoint</h3>
+    <p>Accept an .xlsx upload, process it with xlfilldown, and return a summary. Users upload via a form or API call.</p>
+    <pre class="code-block"><span class="kw">import</span> os
+<span class="kw">import</span> tempfile
+<span class="kw">from</span> flask <span class="kw">import</span> Flask, request, jsonify
+<span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+app = <span class="fn">Flask</span>(__name__)
+
+<span class="op">@</span>app.<span class="fn">route</span>(<span class="string">"/ingest"</span>, methods=[<span class="string">"POST"</span>])
+<span class="kw">def</span> <span class="fn">ingest</span>():
+    uploaded = request.files[<span class="string">"file"</span>]
+    sheet = request.form.get(<span class="string">"sheet"</span>, <span class="string">"Sheet1"</span>)
+    fill_cols = request.form.getlist(<span class="string">"fill_cols"</span>)
+
+    <span class="kw">with</span> tempfile.<span class="fn">TemporaryDirectory</span>() <span class="kw">as</span> tmp:
+        inpath = os.path.<span class="fn">join</span>(tmp, <span class="string">"upload.xlsx"</span>)
+        dbpath = os.path.<span class="fn">join</span>(tmp, <span class="string">"result.db"</span>)
+        uploaded.<span class="fn">save</span>(inpath)
+
+        summary = <span class="fn">ingest_excel_to_sqlite</span>(
+            file=inpath,
+            sheet=sheet,
+            header_row=<span class="nb">1</span>,
+            fill_cols=fill_cols,
+            db=dbpath,
+            row_hash=<span class="nb">True</span>,
+            excel_row_numbers=<span class="nb">True</span>,
+            if_exists=<span class="string">"replace"</span>,
+        )
+
+    <span class="kw">return</span> <span class="fn">jsonify</span>(summary)</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-integration">FastAPI</span>
+    <h3>FastAPI upload endpoint</h3>
+    <p>Same idea with FastAPI and async file handling.</p>
+    <pre class="code-block"><span class="kw">import</span> tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+<span class="kw">from</span> fastapi <span class="kw">import</span> FastAPI, UploadFile, Form
+<span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+app = <span class="fn">FastAPI</span>()
+
+<span class="op">@</span>app.<span class="fn">post</span>(<span class="string">"/ingest"</span>)
+<span class="kw">async def</span> <span class="fn">ingest</span>(
+    file: UploadFile,
+    sheet: <span class="nb">str</span> = <span class="fn">Form</span>(<span class="string">"Sheet1"</span>),
+    fill_cols: <span class="nb">str</span> = <span class="fn">Form</span>(<span class="string">'["Region","Country"]'</span>),
+):
+    <span class="kw">import</span> json
+    cols = json.<span class="fn">loads</span>(fill_cols)
+
+    <span class="kw">with</span> tempfile.<span class="fn">NamedTemporaryFile</span>(suffix=<span class="string">".xlsx"</span>, delete=<span class="nb">False</span>) <span class="kw">as</span> tmp:
+        tmp.<span class="fn">write</span>(<span class="kw">await</span> file.<span class="fn">read</span>())
+        tmp_path = tmp.name
+
+    db_path = tmp_path.<span class="fn">replace</span>(<span class="string">".xlsx"</span>, <span class="string">".db"</span>)
+    summary = <span class="fn">ingest_excel_to_sqlite</span>(
+        file=tmp_path,
+        sheet=sheet,
+        header_row=<span class="nb">1</span>,
+        fill_cols=cols,
+        db=db_path,
+        row_hash=<span class="nb">True</span>,
+        if_exists=<span class="string">"replace"</span>,
+    )
+
+    Path(tmp_path).<span class="fn">unlink</span>(missing_ok=<span class="nb">True</span>)
+    <span class="kw">return</span> summary</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pipeline">Pipeline</span>
+    <h3>Shell script for cron / CI</h3>
+    <p>A simple shell script that runs in cron or a CI pipeline. Downloads a report, processes it, and logs the result.</p>
+    <pre class="code-block"><span class="comment">#!/bin/bash</span>
+<span class="comment"># /opt/etl/ingest_weekly.sh</span>
+<span class="comment"># Runs every Monday at 6am via cron</span>
+
+<span class="kw">set</span> <span class="op">-euo</span> pipefail
+
+INFILE=<span class="string">"/data/incoming/weekly_report.xlsx"</span>
+DB=<span class="string">"/data/warehouse/reports.db"</span>
+LOG=<span class="string">"/var/log/etl/weekly_ingest.log"</span>
+
+<span class="nb">echo</span> <span class="string">"[$(date -Iseconds)] Starting ingest"</span> >> <span class="string">"$LOG"</span>
+
+xlfilldown db \
+    <span class="op">--infile</span> <span class="string">"$INFILE"</span> \
+    <span class="op">--insheet</span> <span class="string">"Data"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country","City"]'</span> \
+    <span class="op">--db</span> <span class="string">"$DB"</span> \
+    <span class="op">--table</span> <span class="string">weekly_sales</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span> \
+    <span class="op">--drop-blank-rows</span> \
+    <span class="op">--if-exists</span> <span class="string">replace</span> \
+    >> <span class="string">"$LOG"</span> 2>&amp;1
+
+<span class="nb">echo</span> <span class="string">"[$(date -Iseconds)] Done"</span> >> <span class="string">"$LOG"</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pipeline">Pipeline</span>
+    <h3>Docker one-liner</h3>
+    <p>Run xlfilldown in a container without installing anything on the host. Mount your data directory and go.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> docker run --rm \
+    -v /path/to/data:/data \
+    python:3.12-slim \
+    sh -c <span class="string">"pip install -q xlfilldown &amp;&amp; xlfilldown db \
+      --infile /data/report.xlsx \
+      --insheet Sheet1 \
+      --header-row 1 \
+      --fill-cols '[\"Region\",\"Country\"]' \
+      --db /data/output.db \
+      --row-hash --excel-row-numbers \
+      --if-exists replace"</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pipeline">Pipeline</span>
+    <h3>Airflow task</h3>
+    <p>Use xlfilldown as a step in an Airflow DAG with the BashOperator or PythonOperator.</p>
+    <pre class="code-block"><span class="kw">from</span> airflow.decorators <span class="kw">import</span> task
+
+<span class="op">@</span><span class="fn">task</span>()
+<span class="kw">def</span> <span class="fn">ingest_sales_report</span>(infile: <span class="nb">str</span>, db: <span class="nb">str</span>):
+    <span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+    summary = <span class="fn">ingest_excel_to_sqlite</span>(
+        file=infile,
+        sheet=<span class="string">"Sheet1"</span>,
+        header_row=<span class="nb">1</span>,
+        fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+        db=db,
+        row_hash=<span class="nb">True</span>,
+        excel_row_numbers=<span class="nb">True</span>,
+        drop_blank_rows=<span class="nb">True</span>,
+        if_exists=<span class="string">"replace"</span>,
+    )
+    <span class="kw">return</span> summary</pre>
+  </div>
+
+  <!-- Data Quality -->
+  <h2>Data Quality Patterns</h2>
+  <p class="section-intro">Use audit columns and hashing for validation and debugging.</p>
+
+  <div class="recipe">
+    <span class="tag tag-quality">Quality</span>
+    <h3>Deduplication with row hashes</h3>
+    <p>After ingesting with <code class="inline">--row-hash</code>, query for duplicate rows. Identical content produces identical hashes.</p>
+    <pre class="code-block"><span class="comment">-- Find duplicate rows</span>
+<span class="kw">SELECT</span> row_hash, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> cnt
+<span class="kw">FROM</span> Sheet1
+<span class="kw">GROUP BY</span> row_hash
+<span class="kw">HAVING</span> cnt > <span class="nb">1</span>
+<span class="kw">ORDER BY</span> cnt <span class="kw">DESC</span>;
+
+<span class="comment">-- Keep only the first occurrence</span>
+<span class="kw">DELETE FROM</span> Sheet1
+<span class="kw">WHERE</span> rowid <span class="kw">NOT IN</span> (
+    <span class="kw">SELECT</span> <span class="fn">MIN</span>(rowid) <span class="kw">FROM</span> Sheet1 <span class="kw">GROUP BY</span> row_hash
+);</pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-quality">Quality</span>
+    <h3>Trace back to the source spreadsheet</h3>
+    <p>With <code class="inline">--excel-row-numbers</code>, every record carries its original .xlsx row number. When a downstream user reports a problem, you can pinpoint the exact source row.</p>
+    <pre class="code-block"><span class="comment">-- "This revenue figure looks wrong" - find the source row</span>
+<span class="kw">SELECT</span> excel_row, Region, Country, City, Product, Revenue
+<span class="kw">FROM</span> Sheet1
+<span class="kw">WHERE</span> Revenue = <span class="string">'99999'</span>;
+
+<span class="comment">-- Result: excel_row = 47</span>
+<span class="comment">-- Open sales_report.xlsx, go to row 47, verify the value</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-quality">Quality</span>
+    <h3>Compare raw vs filled data</h3>
+    <p>Ingest twice - once raw, once filled - and compare. Useful for validating that the fill logic matches your expectations.</p>
+    <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+<span class="comment"># Raw ingest</span>
+<span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"data.xlsx"</span>, sheet=<span class="string">"Sheet1"</span>, header_row=<span class="nb">1</span>,
+    ingest_mode=<span class="string">"raw"</span>,
+    db=<span class="string">"compare.db"</span>, table=<span class="string">"raw"</span>,
+    excel_row_numbers=<span class="nb">True</span>, if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="comment"># Filled ingest</span>
+<span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"data.xlsx"</span>, sheet=<span class="string">"Sheet1"</span>, header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+    db=<span class="string">"compare.db"</span>, table=<span class="string">"filled"</span>,
+    excel_row_numbers=<span class="nb">True</span>, if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="comment"># Now query to see what changed</span></pre>
+    <pre class="code-block"><span class="comment">-- Find rows where fill-down changed a value</span>
+<span class="kw">SELECT</span>
+    r.excel_row,
+    r.Region <span class="kw">AS</span> raw_region,
+    f.Region <span class="kw">AS</span> filled_region,
+    r.Country <span class="kw">AS</span> raw_country,
+    f.Country <span class="kw">AS</span> filled_country
+<span class="kw">FROM</span> raw r
+<span class="kw">JOIN</span> filled f <span class="kw">ON</span> r.excel_row = f.excel_row
+<span class="kw">WHERE</span> r.Region != f.Region <span class="kw">OR</span> r.Country != f.Country
+   <span class="kw">OR</span> (r.Region <span class="kw">IS NULL AND</span> f.Region <span class="kw">IS NOT NULL</span>)
+   <span class="kw">OR</span> (r.Country <span class="kw">IS NULL AND</span> f.Country <span class="kw">IS NOT NULL</span>);</pre>
+  </div>
+
+  <!-- Design Patterns -->
+  <h2>Design Patterns</h2>
+  <p class="section-intro">Architectural approaches for common scenarios.</p>
+
+  <div class="recipe">
+    <span class="tag tag-pattern">Pattern</span>
+    <h3>Hierarchical vs independent - choosing the right mode</h3>
+    <p>Use <strong>hierarchical</strong> when columns have a parent-child relationship (Region &gt; Country &gt; City). A change in a parent column should invalidate stale child values.</p>
+    <p>Use <strong>independent</strong> when columns are unrelated dimensions that happen to share blank patterns. For example, "Salesperson" and "Product Line" might both be sparse but don't depend on each other.</p>
+    <div class="note">
+      <p><strong>Rule of thumb:</strong> If you would use a tree diagram to describe the relationship between columns, use hierarchical. If the columns are flat attributes, use independent.</p>
+    </div>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pattern">Pattern</span>
+    <h3>Header row is not row 1</h3>
+    <p>Many .xlsx exports have title rows, blank rows, or metadata above the actual headers. Use <code class="inline">--header-row</code> to point at the correct row. Everything above that row is ignored.</p>
+    <pre class="code-block"><span class="comment"># Headers are on row 3 (rows 1-2 are title/metadata)</span>
+<span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">finance_report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"P&amp;L"</span> \
+    <span class="op">--header-row</span> <span class="nb">3</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Account Group","Account"]'</span> \
+    <span class="op">--db</span> <span class="string">finance.db</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pattern">Pattern</span>
+    <h3>Batch size tuning for large files</h3>
+    <p>The default batch size of 1000 rows works well for most files. For very large sheets (100K+ rows), a larger batch size reduces SQLite transaction overhead.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">huge_export.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Data"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Category"]'</span> \
+    <span class="op">--db</span> <span class="string">warehouse.db</span> \
+    <span class="op">--batch-size</span> <span class="nb">5000</span></pre>
+  </div>
+
+  <div class="recipe">
+    <span class="tag tag-pattern">Pattern</span>
+    <h3>Combining require-non-null with letters</h3>
+    <p>Mix header-name and column-letter approaches for filtering. Both are merged and de-duplicated internally.</p>
+    <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols-letters</span> <span class="nb">A B C</span> \
+    <span class="op">--require-non-null</span> <span class="string">'["Amount"]'</span> \
+    <span class="op">--require-non-null-letters</span> <span class="nb">A</span> \
+    <span class="op">--db</span> <span class="string">filtered.db</span></pre>
+  </div>
+
+  <!-- Quick Reference -->
+  <h2>Quick Reference</h2>
+  <p class="section-intro">At-a-glance summary of the most common options.</p>
+
+  <table class="ref-table">
+    <thead><tr><th>Task</th><th>Key Options</th></tr></thead>
+    <tbody>
+      <tr><td>Fill by header names</td><td><code class="inline">--fill-cols '["Col1","Col2"]'</code></td></tr>
+      <tr><td>Fill by column letters</td><td><code class="inline">--fill-cols-letters A B C</code></td></tr>
+      <tr><td>Hierarchical fill (default)</td><td><code class="inline">--fill-mode hierarchical</code></td></tr>
+      <tr><td>Independent fill</td><td><code class="inline">--fill-mode independent</code></td></tr>
+      <tr><td>Skip fill-down</td><td><code class="inline">--ingest-mode raw</code></td></tr>
+      <tr><td>Add row hashes</td><td><code class="inline">--row-hash</code></td></tr>
+      <tr><td>Add source row numbers</td><td><code class="inline">--excel-row-numbers</code></td></tr>
+      <tr><td>Drop spacer rows</td><td><code class="inline">--drop-blank-rows</code></td></tr>
+      <tr><td>Require non-null columns</td><td><code class="inline">--require-non-null '["Col"]'</code></td></tr>
+      <tr><td>Overwrite on re-run</td><td><code class="inline">--if-exists replace</code></td></tr>
+      <tr><td>Append to existing</td><td><code class="inline">--if-exists append</code></td></tr>
+      <tr><td>Custom table name</td><td><code class="inline">--table my_table</code></td></tr>
+      <tr><td>Tune batch size</td><td><code class="inline">--batch-size 5000</code></td></tr>
+    </tbody>
+  </table>
+
+  <!-- API Quick Reference -->
+  <h2>API Reference</h2>
+  <p class="section-intro">Key functions and their return values.</p>
+
+  <table class="ref-table">
+    <thead><tr><th>Function</th><th>Output</th><th>Return Keys</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code class="inline">ingest_excel_to_sqlite()</code></td>
+        <td>SQLite database</td>
+        <td><code class="inline">table</code>, <code class="inline">columns</code>, <code class="inline">rows_ingested</code>, <code class="inline">row_hash</code>, <code class="inline">excel_row_numbers</code></td>
+      </tr>
+      <tr>
+        <td><code class="inline">ingest_excel_to_excel()</code></td>
+        <td>.xlsx file</td>
+        <td><code class="inline">workbook</code>, <code class="inline">sheet</code>, <code class="inline">columns</code>, <code class="inline">rows_written</code>, <code class="inline">row_hash</code>, <code class="inline">excel_row_numbers</code></td>
+      </tr>
+      <tr>
+        <td><code class="inline">normalize_headers()</code></td>
+        <td>list[str]</td>
+        <td>Trimmed, normalized header strings</td>
+      </tr>
+      <tr>
+        <td><code class="inline">canon_list()</code></td>
+        <td>str</td>
+        <td>JSON-format canonical string</td>
+      </tr>
+      <tr>
+        <td><code class="inline">sha256_hex()</code></td>
+        <td>str</td>
+        <td>64-char hex digest</td>
+      </tr>
+      <tr>
+        <td><code class="inline">qident()</code></td>
+        <td>str</td>
+        <td>Safely quoted SQLite identifier</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>xlf<span>ill</span>down</h3>
+      <p>A Python library for filling down values in .xlsx spreadsheets (OOXML).</p>
+    </div>
+    <div class="footer-links">
+      <h4>Documentation</h4>
+      <a href="index.html">Home</a>
+      <a href="reference.html">Reference Guide</a>
+      <a href="best_practices.html">Best Practices</a>
+    </div>
+    <div class="footer-links">
+      <h4>Project</h4>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+      <a href="https://github.com/RexBytes/xlfilldown/releases">Changelog</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2025 RexBytes. MIT License.</span>
+    <p class="disclaimer">Not affiliated with or endorsed by Microsoft Corporation. "Excel" and ".xlsx" are trademarks or file formats associated with Microsoft. xlfilldown is an independent open-source Python package that reads and writes OOXML (.xlsx) files via the openpyxl library.</p>
+  </div>
+</footer>
+
+</body>
+</html>

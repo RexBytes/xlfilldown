@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>xlfilldown - Forward-fill .xlsx spreadsheets into SQLite or Excel</title>
+<meta name="description" content="A Python library for filling down values in .xlsx spreadsheets (OOXML). Stream into SQLite or a new Excel sheet with forward-fill, row hashing, and audit columns.">
+<meta property="og:title" content="xlfilldown - Forward-fill .xlsx spreadsheets">
+<meta property="og:description" content="A Python library for filling down values in .xlsx spreadsheets (OOXML). Stream into SQLite or Excel with forward-fill padding, preserved row numbers, and stable SHA-256 row hashes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://xlfilldown.net">
+<meta property="og:image" content="https://xlfilldown.net/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1a1a2e;
+  line-height: 1.6;
+  background: #fff;
+}
+
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+code, pre {
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Consolas', monospace;
+}
+
+/* Header */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 0 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+}
+.logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.logo span { color: #60a5fa; }
+nav { display: flex; gap: 24px; align-items: center; }
+nav a {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+nav a:hover, nav a.active { color: #fff; text-decoration: none; }
+
+/* Hero */
+.hero {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 80px 24px 72px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(37, 99, 235, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 70% 80%, rgba(96, 165, 250, 0.06) 0%, transparent 40%);
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; max-width: 800px; margin: 0 auto; }
+.hero h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+.hero .subtitle {
+  font-size: 1.2rem;
+  color: #94a3b8;
+  margin-bottom: 32px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.7;
+}
+.install-box {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 10px;
+  padding: 16px 24px;
+  display: inline-block;
+  margin-bottom: 28px;
+}
+.install-box code {
+  color: #e2e8f0;
+  font-size: 1.05rem;
+}
+.install-box .prompt { color: #64748b; }
+.cta-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s, transform 0.15s;
+  display: inline-block;
+}
+.btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); text-decoration: none; }
+.btn-outline {
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #cbd5e1;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, color 0.2s;
+  display: inline-block;
+}
+.btn-outline:hover { border-color: #fff; color: #fff; text-decoration: none; }
+
+/* Sections */
+.section { padding: 72px 24px; }
+.section-alt { background: #f8fafc; }
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.section-subtitle {
+  text-align: center;
+  color: #64748b;
+  max-width: 600px;
+  margin: 0 auto 48px;
+  font-size: 1rem;
+}
+
+/* Problem / Pain section */
+.pain-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+.pain-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.pain-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.pain-card .icon { font-size: 1.6rem; margin-bottom: 12px; display: block; }
+.pain-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.pain-card p { color: #475569; font-size: 0.93rem; line-height: 1.6; }
+
+/* Key Idea */
+.key-idea {
+  background: #f0f9ff;
+  border-top: 3px solid #2563eb;
+  padding: 56px 24px;
+}
+.key-idea-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+.key-idea h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 16px;
+}
+.key-idea p {
+  color: #475569;
+  margin-bottom: 24px;
+  font-size: 1rem;
+}
+
+/* Code blocks */
+pre.code-block {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  text-align: left;
+}
+code.inline {
+  background: #e2e8f0;
+  color: #1e293b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+.kw, .keyword { color: #93c5fd; }
+.fn { color: #fbbf24; }
+.st, .string { color: #86efac; }
+.cm, .comment { color: #64748b; }
+.op { color: #f472b6; }
+.nb { color: #c4b5fd; }
+
+/* Animated Demo */
+.demo-section {
+  padding: 72px 24px;
+  background: #f8fafc;
+}
+.demo-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.demo-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 48px;
+}
+.demo-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 80px;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 0.82rem;
+  gap: 6px;
+}
+.demo-arrow svg { width: 32px; height: 32px; }
+.demo-panel {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.demo-panel-header {
+  background: #f3f4f6;
+  border-bottom: 1px solid #d1d5db;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+.demo-panel-header .dots {
+  display: flex; gap: 4px;
+}
+.demo-panel-header .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.dot-r { background: #ef4444; }
+.dot-y { background: #f59e0b; }
+.dot-g { background: #22c55e; }
+
+/* Spreadsheet table */
+.sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+}
+.sheet-table th {
+  background: #e5e7eb;
+  color: #374151;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  text-align: left;
+  font-size: 0.75rem;
+}
+.sheet-table .row-num {
+  background: #f3f4f6;
+  color: #9ca3af;
+  text-align: center;
+  width: 32px;
+  font-size: 0.72rem;
+  border: 1px solid #d1d5db;
+  padding: 6px 4px;
+}
+.sheet-table td {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  color: #374151;
+  height: 28px;
+}
+.sheet-table tr:nth-child(even) td:not(.row-num) { background: #fafafa; }
+.cell-empty { color: #d1d5db; }
+.cell-filled {
+  background: #dbeafe !important;
+  color: #1e40af !important;
+  font-weight: 500;
+  position: relative;
+}
+.cell-filled-anim {
+  opacity: 0;
+  transition: opacity 0.4s ease, background 0.4s ease;
+}
+.cell-filled-anim.visible {
+  opacity: 1;
+}
+
+/* DB Viewer */
+.db-viewer {
+  background: #fff;
+  border: 1px solid #c6c6c6;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.db-toolbar {
+  background: #f0f0f0;
+  border-bottom: 1px solid #c6c6c6;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: #555;
+}
+.db-toolbar-btn {
+  background: #e8e8e8;
+  border: 1px solid #bbb;
+  border-radius: 3px;
+  padding: 2px 8px;
+  font-size: 0.68rem;
+  color: #444;
+  font-family: 'Inter', sans-serif;
+}
+.db-toolbar-sep { width: 1px; height: 16px; background: #c6c6c6; }
+.db-status-bar {
+  background: #f0f0f0;
+  border-top: 1px solid #c6c6c6;
+  padding: 3px 8px;
+  font-size: 0.68rem;
+  color: #888;
+}
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  font-family: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+}
+.db-table th {
+  background: #e8e8e8;
+  color: #333;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid #c6c6c6;
+  text-align: left;
+  font-size: 0.72rem;
+}
+.db-table td {
+  padding: 4px 10px;
+  border: 1px solid #ddd;
+  color: #444;
+}
+.db-table tr:nth-child(even) td { background: #f7f7f7; }
+.db-table .col-hash { color: #888; font-size: 0.68rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.db-table .col-rownum { color: #2563eb; font-weight: 500; }
+
+/* Click-along mode */
+.click-along {
+  max-width: 800px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+.click-along h3 {
+  font-size: 1.15rem;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.click-along p {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+.step-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.step-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+.step-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+.step-btn:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+.step-btn-outline {
+  background: transparent;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.step-btn-outline:hover { background: #eff6ff; }
+.step-indicator {
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Who benefits */
+.audience-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+.audience-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px;
+  transition: box-shadow 0.2s;
+}
+.audience-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+.audience-card .label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+.label-engineer { background: #dbeafe; color: #1e40af; }
+.label-analyst { background: #fef3c7; color: #92400e; }
+.label-pipeline { background: #dcfce7; color: #166534; }
+.audience-card h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.audience-card p { color: #475569; font-size: 0.9rem; }
+
+/* Features grid */
+.features-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+.feature-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 28px;
+  transition: box-shadow 0.2s, transform 0.15s;
+}
+.feature-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-2px); }
+.feature-card h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.feature-card p { color: #475569; font-size: 0.9rem; }
+.feature-icon {
+  width: 40px;
+  height: 40px;
+  background: #eff6ff;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+}
+
+/* Quickstart */
+.quickstart {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.step {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 32px;
+  align-items: flex-start;
+}
+.step-num {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-top: 2px;
+}
+.step-content { flex: 1; }
+.step-content h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+.step-content p { color: #475569; font-size: 0.9rem; margin-bottom: 12px; }
+
+/* Compat */
+.compat-grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+.compat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.compat-card .version {
+  color: #2563eb;
+  font-size: 1.3em;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 4px;
+}
+.compat-card .label {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* Footer */
+.site-footer {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 48px 24px 32px;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 40px;
+}
+.footer-brand h3 { color: #fff; font-size: 1.1rem; margin-bottom: 8px; }
+.footer-brand h3 span { color: #60a5fa; }
+.footer-links h4 { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 12px; }
+.footer-links a { color: #94a3b8; display: block; margin-bottom: 6px; font-size: 0.85rem; }
+.footer-links a:hover { color: #fff; text-decoration: none; }
+.footer-bottom {
+  max-width: 1100px;
+  margin: 32px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.disclaimer {
+  color: #64748b;
+  font-size: 0.78rem;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+/* Mobile nav toggle */
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+.nav-toggle span { display: block; width: 22px; height: 2px; background: #cbd5e1; margin: 5px 0; transition: 0.3s; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 2rem; }
+  .hero .subtitle { font-size: 1rem; }
+  .features-grid, .pain-grid, .audience-grid { grid-template-columns: 1fr; }
+  .demo-flow { grid-template-columns: 1fr; }
+  .demo-arrow { flex-direction: row; padding-top: 0; padding: 8px 0; }
+  .demo-arrow svg { transform: rotate(90deg); }
+  .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+  .header-inner { flex-wrap: wrap; }
+  nav { gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .compat-grid { grid-template-columns: repeat(2, 1fr); }
+  .nav-toggle { display: block; }
+  nav.nav-closed { display: none; }
+  nav.nav-open { display: flex; width: 100%; padding: 12px 0; }
+  .section { padding: 48px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">xlf<span>ill</span>down</a>
+    <button class="nav-toggle" onclick="document.querySelector('nav').classList.toggle('nav-open');document.querySelector('nav').classList.toggle('nav-closed')" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="reference.html">Reference</a>
+      <a href="best_practices.html">Best Practices</a>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-content">
+    <h1>xlfilldown</h1>
+    <p class="subtitle">A Python library for filling down values in .xlsx spreadsheets (OOXML). Stream into SQLite or a new Excel sheet with forward-fill padding, preserved row numbers, and stable SHA-256 row hashes.</p>
+    <div class="install-box">
+      <code><span class="prompt">$</span> pip install xlfilldown</code>
+    </div>
+    <div class="cta-row">
+      <a href="reference.html" class="btn-primary">Read the Docs</a>
+      <a href="https://github.com/RexBytes/xlfilldown" class="btn-outline">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- Problem Section -->
+<section class="section">
+  <h2 class="section-title">The Problem</h2>
+  <p class="section-subtitle">Hierarchical .xlsx exports are everywhere - and they are a pain to work with programmatically.</p>
+  <div class="pain-grid">
+    <div class="pain-card">
+      <span class="icon">&#x1F4C9;</span>
+      <h3>Merged and sparse data</h3>
+      <p>Reporting tools export grouped data where "Region" only appears once for a block of rows. Every row below is blank until the next group. You need flat, filled rows for SQL queries, pandas, or dashboards.</p>
+    </div>
+    <div class="pain-card">
+      <span class="icon">&#x1F527;</span>
+      <h3>Manual cleanup is fragile</h3>
+      <p>Opening the file and dragging fill-down by hand works once - but breaks the moment a new export lands. You need something repeatable in a script or data pipeline.</p>
+    </div>
+    <div class="pain-card">
+      <span class="icon">&#x1F504;</span>
+      <h3>Pandas overhead for simple ETL</h3>
+      <p>Pulling in pandas just to forward-fill a few columns and write to SQLite is a heavy dependency. xlfilldown does the job with only openpyxl, streaming rows in constant memory.</p>
+    </div>
+    <div class="pain-card">
+      <span class="icon">&#x1F50D;</span>
+      <h3>No audit trail</h3>
+      <p>When something looks wrong downstream, you need to trace a row back to the original spreadsheet. Without preserved row numbers and stable hashes, debugging is guesswork.</p>
+    </div>
+    <div class="pain-card">
+      <span class="icon">&#x26A0;&#xFE0F;</span>
+      <h3>Hierarchical resets</h3>
+      <p>When "Region" changes, "Country" and "City" should reset - not carry stale values from the previous group. Most simple ffill solutions get this wrong.</p>
+    </div>
+    <div class="pain-card">
+      <span class="icon">&#x1F4E6;</span>
+      <h3>No lightweight CLI tool</h3>
+      <p>You want to run a single command in CI/CD or cron to ingest an .xlsx into SQLite, with fill-down, hashing, and row numbers - without writing a custom script every time.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Interactive Demo -->
+<section class="demo-section" id="demo">
+  <h2 class="section-title">See It in Action</h2>
+  <p class="section-subtitle">Watch xlfilldown transform sparse hierarchical data into clean, filled rows - then load it into a database.</p>
+
+  <div class="demo-container">
+    <!-- Click Along Controls -->
+    <div class="click-along">
+      <h3>Interactive Walkthrough</h3>
+      <p>Step through the fill-down process to see how each stage transforms the data.</p>
+      <div class="step-controls">
+        <button class="step-btn" id="btn-prev" disabled onclick="demoStep(-1)">Previous</button>
+        <span class="step-indicator" id="step-label">Step 1 of 4</span>
+        <button class="step-btn" id="btn-next" onclick="demoStep(1)">Next Step</button>
+        <button class="step-btn-outline" id="btn-auto" onclick="demoAutoPlay()">Auto Play</button>
+      </div>
+    </div>
+
+    <!-- Step 1 & 2: Spreadsheet Before / After -->
+    <div class="demo-flow" id="demo-sheets">
+      <!-- Input Sheet -->
+      <div class="demo-panel" id="panel-input">
+        <div class="demo-panel-header">
+          <div class="dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+          sales_report.xlsx - Sheet1
+        </div>
+        <table class="sheet-table" id="sheet-input">
+          <thead>
+            <tr>
+              <th style="width:32px"></th>
+              <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-num">1</td><td style="font-weight:600">Region</td><td style="font-weight:600">Country</td><td style="font-weight:600">City</td><td style="font-weight:600">Product</td><td style="font-weight:600">Revenue</td></tr>
+            <tr><td class="row-num">2</td><td>EMEA</td><td>UK</td><td>London</td><td>Widget A</td><td>12500</td></tr>
+            <tr><td class="row-num">3</td><td class="cell-empty"></td><td class="cell-empty"></td><td>Manchester</td><td>Widget B</td><td>8300</td></tr>
+            <tr><td class="row-num">4</td><td class="cell-empty"></td><td>Germany</td><td>Berlin</td><td>Widget A</td><td>15200</td></tr>
+            <tr><td class="row-num">5</td><td class="cell-empty"></td><td class="cell-empty"></td><td>Munich</td><td>Widget C</td><td>9100</td></tr>
+            <tr><td class="row-num">6</td><td>APAC</td><td>Japan</td><td>Tokyo</td><td>Widget B</td><td>22400</td></tr>
+            <tr><td class="row-num">7</td><td class="cell-empty"></td><td class="cell-empty"></td><td>Osaka</td><td>Widget A</td><td>11800</td></tr>
+            <tr><td class="row-num">8</td><td class="cell-empty"></td><td>Australia</td><td>Sydney</td><td>Widget C</td><td>17600</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Arrow -->
+      <div class="demo-arrow" id="arrow1">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 16h20m0 0l-6-6m6 6l-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>xlfilldown</span>
+      </div>
+
+      <!-- Output Sheet -->
+      <div class="demo-panel" id="panel-output" style="opacity: 0.3;">
+        <div class="demo-panel-header">
+          <div class="dots"><span class="dot dot-r"></span><span class="dot dot-y"></span><span class="dot dot-g"></span></div>
+          sales_filled.xlsx - Processed
+        </div>
+        <table class="sheet-table" id="sheet-output">
+          <thead>
+            <tr>
+              <th style="width:32px"></th>
+              <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="row-num">1</td><td style="font-weight:600">Region</td><td style="font-weight:600">Country</td><td style="font-weight:600">City</td><td style="font-weight:600">Product</td><td style="font-weight:600">Revenue</td></tr>
+            <tr><td class="row-num">2</td><td>EMEA</td><td>UK</td><td>London</td><td>Widget A</td><td>12500</td></tr>
+            <tr><td class="row-num">3</td><td class="cell-filled cell-filled-anim" data-step="2">EMEA</td><td class="cell-filled cell-filled-anim" data-step="2">UK</td><td>Manchester</td><td>Widget B</td><td>8300</td></tr>
+            <tr><td class="row-num">4</td><td class="cell-filled cell-filled-anim" data-step="2">EMEA</td><td>Germany</td><td>Berlin</td><td>Widget A</td><td>15200</td></tr>
+            <tr><td class="row-num">5</td><td class="cell-filled cell-filled-anim" data-step="2">EMEA</td><td class="cell-filled cell-filled-anim" data-step="2">Germany</td><td>Munich</td><td>Widget C</td><td>9100</td></tr>
+            <tr><td class="row-num">6</td><td>APAC</td><td>Japan</td><td>Tokyo</td><td>Widget B</td><td>22400</td></tr>
+            <tr><td class="row-num">7</td><td class="cell-filled cell-filled-anim" data-step="2">APAC</td><td class="cell-filled cell-filled-anim" data-step="2">Japan</td><td>Osaka</td><td>Widget A</td><td>11800</td></tr>
+            <tr><td class="row-num">8</td><td class="cell-filled cell-filled-anim" data-step="2">APAC</td><td>Australia</td><td>Sydney</td><td>Widget C</td><td>17600</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Step 3: Command shown -->
+    <div id="demo-command" style="max-width: 800px; margin: 0 auto 32px; display: none;">
+      <p style="color: #1e3a5f; font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; text-align: center;">The command that does it all:</p>
+      <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">sales_report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country"]'</span> \
+    <span class="op">--db</span> <span class="string">sales.db</span> \
+    <span class="op">--row-hash</span> <span class="op">--excel-row-numbers</span></pre>
+    </div>
+
+    <!-- Step 4: Database View -->
+    <div id="demo-db" style="max-width: 960px; margin: 0 auto; display: none;">
+      <p style="color: #1e3a5f; font-weight: 600; font-size: 0.95rem; margin-bottom: 12px; text-align: center;">Result in SQLite:</p>
+      <div class="db-viewer">
+        <div class="db-toolbar">
+          <span class="db-toolbar-btn">Browse Data</span>
+          <span class="db-toolbar-btn" style="background:transparent;border-color:transparent;color:#999">Execute SQL</span>
+          <span class="db-toolbar-sep"></span>
+          <span style="color:#999">Table:</span>
+          <span style="color:#444;font-weight:500">Sheet1</span>
+        </div>
+        <table class="db-table">
+          <thead>
+            <tr><th>row_hash</th><th>excel_row</th><th>Region</th><th>Country</th><th>City</th><th>Product</th><th>Revenue</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="col-hash">a3f1c8...</td><td class="col-rownum">2</td><td>EMEA</td><td>UK</td><td>London</td><td>Widget A</td><td>12500</td></tr>
+            <tr><td class="col-hash">7b2e91...</td><td class="col-rownum">3</td><td>EMEA</td><td>UK</td><td>Manchester</td><td>Widget B</td><td>8300</td></tr>
+            <tr><td class="col-hash">d4f5a2...</td><td class="col-rownum">4</td><td>EMEA</td><td>Germany</td><td>Berlin</td><td>Widget A</td><td>15200</td></tr>
+            <tr><td class="col-hash">e8c3b7...</td><td class="col-rownum">5</td><td>EMEA</td><td>Germany</td><td>Munich</td><td>Widget C</td><td>9100</td></tr>
+            <tr><td class="col-hash">1a9d4e...</td><td class="col-rownum">6</td><td>APAC</td><td>Japan</td><td>Tokyo</td><td>Widget B</td><td>22400</td></tr>
+            <tr><td class="col-hash">c6f2b8...</td><td class="col-rownum">7</td><td>APAC</td><td>Japan</td><td>Osaka</td><td>Widget A</td><td>11800</td></tr>
+            <tr><td class="col-hash">5e7a13...</td><td class="col-rownum">8</td><td>APAC</td><td>Australia</td><td>Sydney</td><td>Widget C</td><td>17600</td></tr>
+          </tbody>
+        </table>
+        <div class="db-status-bar">7 rows returned | Table: Sheet1 | Database: sales.db</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Key Idea -->
+<section class="key-idea">
+  <div class="key-idea-inner">
+    <h2>One command. Clean data.</h2>
+    <p>xlfilldown reads your .xlsx, forward-fills the sparse columns you specify, and writes to SQLite or a new Excel file. No pandas. No manual steps. Just pipe it into your workflow.</p>
+    <pre class="code-block"><span class="comment"># Python API - two lines to go from messy .xlsx to clean SQLite</span>
+<span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+summary = <span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"report.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+    db=<span class="string">"output.db"</span>,
+    row_hash=<span class="nb">True</span>,
+    excel_row_numbers=<span class="nb">True</span>,
+)
+<span class="nb">print</span>(<span class="string">f"Ingested </span>{summary[<span class="string">'rows_ingested'</span>]}<span class="string"> rows"</span>)</pre>
+  </div>
+</section>
+
+<!-- Who benefits -->
+<section class="section section-alt">
+  <h2 class="section-title">Who Is This For?</h2>
+  <p class="section-subtitle">Anyone dealing with grouped .xlsx exports that need to become flat, queryable data.</p>
+  <div class="audience-grid">
+    <div class="audience-card">
+      <span class="label label-analyst">Data Analyst</span>
+      <h3>Analysts cleaning monthly reports</h3>
+      <p>You get a grouped .xlsx export from finance, HR, or sales every week. You need flat rows for pivot tables, SQL queries, or BI tools. xlfilldown fills the gaps and gives you a clean sheet or SQLite database in one command.</p>
+    </div>
+    <div class="audience-card">
+      <span class="label label-engineer">Data Engineer</span>
+      <h3>Engineers building data pipelines</h3>
+      <p>You need a lightweight, scriptable step in your ETL pipeline to normalize .xlsx inputs before loading into a warehouse. xlfilldown streams rows in constant memory, adds row hashes for deduplication, and needs only openpyxl as a dependency.</p>
+    </div>
+    <div class="audience-card">
+      <span class="label label-pipeline">DevOps / Automation</span>
+      <h3>Automation in CI/CD or cron</h3>
+      <p>Drop a single CLI command into your pipeline. No Python script to maintain - just <code class="inline">xlfilldown db</code> with the right flags. Schedule it with cron, run it in a container, or trigger it from Airflow.</p>
+    </div>
+    <div class="audience-card">
+      <span class="label label-analyst">Local User</span>
+      <h3>Running locally on your laptop</h3>
+      <p>Install with pip or pipx, run the command, open the output. No server needed, no cloud uploads. Your data stays on your machine. Perfect for one-off cleanup or quick ad-hoc analysis.</p>
+    </div>
+    <div class="audience-card">
+      <span class="label label-engineer">Python Developer</span>
+      <h3>Embedding in your app</h3>
+      <p>Use the Python API directly. Two functions - <code class="inline">ingest_excel_to_sqlite()</code> and <code class="inline">ingest_excel_to_excel()</code> - with clear return summaries. Build upload endpoints, batch processors, or data quality checks on top.</p>
+    </div>
+    <div class="audience-card">
+      <span class="label label-pipeline">QA / Audit</span>
+      <h3>Audit trails and data validation</h3>
+      <p>Every row carries its original Excel row number and a SHA-256 hash. Trace any database record back to the source spreadsheet line. Detect duplicates. Verify data integrity after transformation.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Features Grid -->
+<section class="section">
+  <h2 class="section-title">Features</h2>
+  <p class="section-subtitle">Everything you need to go from messy .xlsx to clean, queryable data.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x2B07;&#xFE0F;</div>
+      <h3>Hierarchical fill-down</h3>
+      <p>When a parent column changes, child columns reset automatically. Region &gt; Country &gt; City stays correct across group boundaries.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F501;</div>
+      <h3>Independent fill mode</h3>
+      <p>Pandas-style ffill where each column carries forward on its own. No resets, no dependencies between columns.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4BE;</div>
+      <h3>SQLite &amp; Excel output</h3>
+      <p>Write to a SQLite database or a new .xlsx file. Same input flags for both. Choose your destination, xlfilldown handles the rest.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F512;</div>
+      <h3>SHA-256 row hashes</h3>
+      <p>Stable, deterministic hashes over all columns after filling. Use for deduplication, change detection, and audit trails.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4CB;</div>
+      <h3>Excel row numbers</h3>
+      <p>Preserve the original 1-based row number from the source file. Trace any output record back to the exact spreadsheet line.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x26A1;</div>
+      <h3>Streaming &amp; constant memory</h3>
+      <p>Uses openpyxl read-only mode. Rows stream through without loading the entire sheet into memory. Handles large files efficiently.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F6AB;</div>
+      <h3>Row filtering</h3>
+      <p>Drop blank spacer rows or require specific columns to be non-null after filling. Clean output without post-processing.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4E5;</div>
+      <h3>Raw ingest mode</h3>
+      <p>Skip fill-down entirely. Just load the sheet as-is with optional audit columns. Useful for raw copies and baseline comparisons.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F6E0;&#xFE0F;</div>
+      <h3>Minimal dependencies</h3>
+      <p>Only requires openpyxl. No pandas, no numpy, no heavy frameworks. Installs fast, stays lean.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Start -->
+<section class="section section-alt">
+  <h2 class="section-title">Quick Start</h2>
+  <p class="section-subtitle">From install to clean data in under a minute.</p>
+  <div class="quickstart">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Install</h3>
+        <p>Grab it from PyPI with pip or pipx. Python 3.9+ required.</p>
+        <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> pip install xlfilldown</pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Fill down to SQLite</h3>
+        <p>Point at your .xlsx, name the columns to fill, and pick a database.</p>
+        <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country"]'</span> \
+    <span class="op">--db</span> <span class="string">output.db</span> \
+    <span class="op">--row-hash</span> <span class="op">--excel-row-numbers</span></pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Or fill down to a new .xlsx</h3>
+        <p>Same flags, different destination. Output a clean, filled spreadsheet.</p>
+        <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown xlsx \
+    <span class="op">--infile</span> <span class="string">report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols-letters</span> <span class="nb">A B</span> \
+    <span class="op">--outfile</span> <span class="string">filled.xlsx</span></pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Use the Python API</h3>
+        <p>Two functions, clear return values. Embed in Flask, FastAPI, Airflow, or any script.</p>
+        <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+summary = <span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"report.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+    db=<span class="string">"output.db"</span>,
+)
+<span class="comment"># Returns: {table, columns, rows_ingested, row_hash, excel_row_numbers}</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Compatibility -->
+<section class="section">
+  <h2 class="section-title">Compatibility</h2>
+  <p class="section-subtitle">Tested and supported across Python and openpyxl versions.</p>
+  <div class="compat-grid">
+    <div class="compat-card">
+      <span class="version">3.9+</span>
+      <span class="label">Python</span>
+    </div>
+    <div class="compat-card">
+      <span class="version">3.1.0+</span>
+      <span class="label">openpyxl</span>
+    </div>
+    <div class="compat-card">
+      <span class="version">.xlsx</span>
+      <span class="label">OOXML format</span>
+    </div>
+    <div class="compat-card">
+      <span class="version">SQLite 3</span>
+      <span class="label">Database output</span>
+    </div>
+    <div class="compat-card">
+      <span class="version">MIT</span>
+      <span class="label">License</span>
+    </div>
+    <div class="compat-card">
+      <span class="version">v1.0.3</span>
+      <span class="label">Current release</span>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>xlf<span>ill</span>down</h3>
+      <p>A Python library for filling down values in .xlsx spreadsheets (OOXML). Stream into SQLite or a new Excel sheet with forward-fill padding, preserved row numbers, and stable SHA-256 row hashes.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Documentation</h4>
+      <a href="index.html">Home</a>
+      <a href="reference.html">Reference Guide</a>
+      <a href="best_practices.html">Best Practices</a>
+    </div>
+    <div class="footer-links">
+      <h4>Project</h4>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+      <a href="https://github.com/RexBytes/xlfilldown/releases">Changelog</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2025 RexBytes. MIT License.</span>
+    <p class="disclaimer">Not affiliated with or endorsed by Microsoft Corporation. "Excel" and ".xlsx" are trademarks or file formats associated with Microsoft. xlfilldown is an independent open-source Python package that reads and writes OOXML (.xlsx) files via the openpyxl library.</p>
+  </div>
+</footer>
+
+<!-- Demo Animation Script -->
+<script>
+(function() {
+  var currentStep = 1;
+  var totalSteps = 4;
+  var autoPlaying = false;
+  var autoTimer = null;
+
+  window.demoStep = function(dir) {
+    var next = currentStep + dir;
+    if (next < 1 || next > totalSteps) return;
+    currentStep = next;
+    render();
+  };
+
+  window.demoAutoPlay = function() {
+    if (autoPlaying) {
+      clearInterval(autoTimer);
+      autoPlaying = false;
+      document.getElementById('btn-auto').textContent = 'Auto Play';
+      return;
+    }
+    autoPlaying = true;
+    document.getElementById('btn-auto').textContent = 'Pause';
+    currentStep = 1;
+    render();
+    autoTimer = setInterval(function() {
+      currentStep++;
+      if (currentStep > totalSteps) {
+        currentStep = totalSteps;
+        clearInterval(autoTimer);
+        autoPlaying = false;
+        document.getElementById('btn-auto').textContent = 'Auto Play';
+      }
+      render();
+    }, 2000);
+  };
+
+  function render() {
+    document.getElementById('step-label').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+    document.getElementById('btn-prev').disabled = currentStep <= 1;
+    document.getElementById('btn-next').disabled = currentStep >= totalSteps;
+
+    var panelOutput = document.getElementById('panel-output');
+    var demoCommand = document.getElementById('demo-command');
+    var demoDb = document.getElementById('demo-db');
+
+    // Step 1: Show input only
+    if (currentStep === 1) {
+      panelOutput.style.opacity = '0.3';
+      hideFilledCells();
+      demoCommand.style.display = 'none';
+      demoDb.style.display = 'none';
+    }
+
+    // Step 2: Show output with filled cells animating in
+    if (currentStep >= 2) {
+      panelOutput.style.opacity = '1';
+      showFilledCells();
+    }
+
+    // Step 3: Show the command
+    if (currentStep >= 3) {
+      demoCommand.style.display = 'block';
+    } else {
+      demoCommand.style.display = 'none';
+    }
+
+    // Step 4: Show DB viewer
+    if (currentStep >= 4) {
+      demoDb.style.display = 'block';
+    } else {
+      demoDb.style.display = 'none';
+    }
+  }
+
+  function showFilledCells() {
+    var cells = document.querySelectorAll('.cell-filled-anim');
+    cells.forEach(function(cell, i) {
+      setTimeout(function() {
+        cell.classList.add('visible');
+      }, i * 80);
+    });
+  }
+
+  function hideFilledCells() {
+    var cells = document.querySelectorAll('.cell-filled-anim');
+    cells.forEach(function(cell) {
+      cell.classList.remove('visible');
+    });
+  }
+
+  // Initialize
+  render();
+})();
+</script>
+
+</body>
+</html>
