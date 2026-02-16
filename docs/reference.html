@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reference Guide - xlfilldown</title>
+<meta name="description" content="Complete reference guide for xlfilldown: CLI commands, Python API, configuration options, and compatibility.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1a1a2e;
+  line-height: 1.7;
+  background: #fff;
+}
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font-family: 'SF Mono', 'Fira Code', 'Fira Mono', 'Consolas', monospace; }
+
+.site-header {
+  position: sticky; top: 0; z-index: 100;
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 0 24px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.header-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; height: 60px;
+}
+.logo { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+.logo span { color: #60a5fa; }
+nav { display: flex; gap: 24px; align-items: center; }
+nav a { color: #cbd5e1; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; text-decoration: none; }
+nav a:hover, nav a.active { color: #fff; text-decoration: none; }
+.nav-toggle { display: none; background: none; border: none; cursor: pointer; padding: 4px; }
+.nav-toggle span { display: block; width: 22px; height: 2px; background: #cbd5e1; margin: 5px 0; }
+
+.page-banner {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 56px 24px 48px; text-align: center;
+}
+.page-banner h1 { font-size: 2.4rem; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.page-banner p { color: #94a3b8; font-size: 1.05rem; max-width: 600px; margin: 0 auto; }
+
+.content { max-width: 960px; margin: 0 auto; padding: 48px 24px 72px; }
+
+.toc {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 24px 28px; margin-bottom: 48px;
+}
+.toc h3 { font-size: 1rem; font-weight: 600; color: #1e3a5f; margin-bottom: 12px; }
+.toc ul { list-style: none; }
+.toc li { margin-bottom: 6px; }
+.toc a { font-size: 0.9rem; color: #2563eb; }
+.toc .sub { padding-left: 20px; }
+
+h2 {
+  font-size: 1.6rem; font-weight: 700; color: #1e3a5f;
+  margin-top: 56px; margin-bottom: 16px;
+  padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;
+}
+h3 { font-size: 1.2rem; font-weight: 600; color: #1e3a5f; margin-top: 36px; margin-bottom: 12px; }
+h4 { font-size: 1.05rem; font-weight: 600; color: #374151; margin-top: 28px; margin-bottom: 8px; }
+h5 { font-size: 0.95rem; font-weight: 600; color: #475569; margin-top: 20px; margin-bottom: 6px; }
+p { margin-bottom: 14px; color: #374151; font-size: 0.95rem; }
+ul, ol { margin-bottom: 14px; padding-left: 24px; }
+li { margin-bottom: 6px; color: #374151; font-size: 0.93rem; }
+
+code.inline {
+  background: #e2e8f0; color: #1e293b; padding: 2px 8px; border-radius: 4px; font-size: 0.85em;
+}
+pre.code-block {
+  background: #1e293b; color: #e2e8f0; border-radius: 10px;
+  padding: 20px 24px; overflow-x: auto; font-size: 0.85rem; line-height: 1.7; margin-bottom: 20px;
+}
+.kw, .keyword { color: #93c5fd; }
+.fn { color: #fbbf24; }
+.st, .string { color: #86efac; }
+.cm, .comment { color: #64748b; }
+.op { color: #f472b6; }
+.nb { color: #c4b5fd; }
+
+.ref-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 0.88rem; }
+.ref-table th {
+  background: #1e3a5f; color: #fff; font-weight: 600;
+  padding: 10px 14px; text-align: left; font-size: 0.85rem;
+}
+.ref-table td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #374151; vertical-align: top; }
+.ref-table tr:nth-child(even) td { background: #f1f5f9; }
+.ref-table tr:hover td { background: #e8f0fe; }
+
+.note {
+  background: #f0f9ff; border-left: 4px solid #2563eb;
+  padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px;
+}
+.note p { margin-bottom: 0; color: #1e3a5f; font-size: 0.9rem; }
+.warning {
+  background: #fef3c7; border-left: 4px solid #f59e0b;
+  padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 20px;
+}
+.warning p { margin-bottom: 0; color: #92400e; font-size: 0.9rem; }
+
+.site-footer {
+  background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+  padding: 48px 24px 32px; color: #94a3b8; font-size: 0.85rem;
+}
+.footer-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
+.footer-brand h3 { color: #fff; font-size: 1.1rem; margin-bottom: 8px; }
+.footer-brand h3 span { color: #60a5fa; }
+.footer-links h4 { color: #cbd5e1; font-size: 0.9rem; margin-bottom: 12px; }
+.footer-links a { color: #94a3b8; display: block; margin-bottom: 6px; font-size: 0.85rem; }
+.footer-links a:hover { color: #fff; text-decoration: none; }
+.footer-bottom {
+  max-width: 1100px; margin: 32px auto 0; padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.disclaimer { color: #64748b; font-size: 0.78rem; max-width: 600px; line-height: 1.5; }
+
+@media (max-width: 768px) {
+  .page-banner h1 { font-size: 1.8rem; }
+  .content { padding: 32px 16px 48px; }
+  .footer-inner { grid-template-columns: 1fr; gap: 24px; }
+  .footer-bottom { flex-direction: column; text-align: center; }
+  .ref-table { font-size: 0.8rem; }
+  .ref-table th, .ref-table td { padding: 8px 10px; }
+  .nav-toggle { display: block; }
+  nav.nav-closed { display: none; }
+  nav.nav-open { display: flex; width: 100%; padding: 12px 0; flex-wrap: wrap; justify-content: center; }
+  h2 { font-size: 1.35rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="logo">xlf<span>ill</span>down</a>
+    <button class="nav-toggle" onclick="document.querySelector('nav').classList.toggle('nav-open');document.querySelector('nav').classList.toggle('nav-closed')" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="reference.html" class="active">Reference</a>
+      <a href="best_practices.html">Best Practices</a>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+    </nav>
+  </div>
+</header>
+
+<section class="page-banner">
+  <h1>Reference Guide</h1>
+  <p>Complete documentation for the xlfilldown CLI and Python API.</p>
+</section>
+
+<div class="content">
+
+  <div class="toc">
+    <h3>Contents</h3>
+    <ul>
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#installation">Installation</a></li>
+      <li><a href="#cli">CLI Commands</a></li>
+      <li class="sub"><a href="#cli-common">Common Input Options</a></li>
+      <li class="sub"><a href="#cli-db">db Subcommand (SQLite)</a></li>
+      <li class="sub"><a href="#cli-xlsx">xlsx Subcommand (Excel)</a></li>
+      <li><a href="#python-api">Python API</a></li>
+      <li class="sub"><a href="#api-sqlite">ingest_excel_to_sqlite()</a></li>
+      <li class="sub"><a href="#api-excel">ingest_excel_to_excel()</a></li>
+      <li class="sub"><a href="#api-utilities">Utility Functions</a></li>
+      <li><a href="#fill-modes">Fill Modes</a></li>
+      <li class="sub"><a href="#fill-hierarchical">Hierarchical (default)</a></li>
+      <li class="sub"><a href="#fill-independent">Independent (pandas-style)</a></li>
+      <li><a href="#behavior">Behavior Details</a></li>
+      <li><a href="#sqlite-details">SQLite Output Details</a></li>
+      <li><a href="#excel-details">Excel Output Details</a></li>
+      <li><a href="#compatibility">Compatibility</a></li>
+    </ul>
+  </div>
+
+  <!-- Overview -->
+  <h2 id="overview">Overview</h2>
+  <p>xlfilldown is a Python library and CLI tool that streams an .xlsx (OOXML) sheet into SQLite or a new Excel sheet with forward-fill padding. It preserves original Excel row numbers and computes a stable SHA-256 row hash for audit purposes.</p>
+  <p>The tool ingests only columns with non-empty headers, stores all values as TEXT strings (numbers and dates are canonicalized to stable text), and streams rows in constant memory using openpyxl's read-only mode.</p>
+  <div class="note">
+    <p><strong>Key concept:</strong> "Fill-down" (or forward-fill) means populating empty cells with the last non-empty value from the same column. This is essential when working with grouped .xlsx exports where parent values appear only once per group.</p>
+  </div>
+
+  <!-- Installation -->
+  <h2 id="installation">Installation</h2>
+  <h3>From PyPI (recommended)</h3>
+  <pre class="code-block"><span class="comment"># Using pip</span>
+<span class="prompt" style="color:#64748b">$</span> pip install xlfilldown
+
+<span class="comment"># Using pipx (isolated environment)</span>
+<span class="prompt" style="color:#64748b">$</span> pipx install xlfilldown</pre>
+  <p>Requires Python &ge; 3.9. The only dependency is <code class="inline">openpyxl</code> &ge; 3.1.0.</p>
+
+  <h3>From source</h3>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> git clone https://github.com/RexBytes/xlfilldown.git
+<span class="prompt" style="color:#64748b">$</span> cd xlfilldown
+<span class="prompt" style="color:#64748b">$</span> pip install .</pre>
+
+  <!-- CLI -->
+  <h2 id="cli">CLI Commands</h2>
+  <p>The <code class="inline">xlfilldown</code> command has two subcommands sharing the same input options:</p>
+  <ul>
+    <li><code class="inline">xlfilldown db</code> - write to a SQLite database</li>
+    <li><code class="inline">xlfilldown xlsx</code> - write to a new .xlsx file</li>
+  </ul>
+
+  <h3 id="cli-common">Common Input Options</h3>
+  <p>These options apply to both <code class="inline">db</code> and <code class="inline">xlsx</code> subcommands.</p>
+  <table class="ref-table">
+    <thead><tr><th>Option</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">--infile</code></td><td>Yes</td><td>-</td><td>Path to the input .xlsx file.</td></tr>
+      <tr><td><code class="inline">--insheet</code></td><td>Yes</td><td>-</td><td>Sheet name to read from the input file.</td></tr>
+      <tr><td><code class="inline">--header-row</code></td><td>Yes</td><td>-</td><td>1-based row number containing column headers.</td></tr>
+      <tr><td><code class="inline">--fill-cols</code></td><td>No</td><td>-</td><td>JSON array of header names to forward-fill. Example: <code class="inline">'["Region","Country"]'</code>. Mutually exclusive with <code class="inline">--fill-cols-letters</code>.</td></tr>
+      <tr><td><code class="inline">--fill-cols-letters</code></td><td>No</td><td>-</td><td>Excel column letters to forward-fill, space-separated. Example: <code class="inline">A C AE</code>. Resolved to header names via <code class="inline">--header-row</code>. Mutually exclusive with <code class="inline">--fill-cols</code>.</td></tr>
+      <tr><td><code class="inline">--fill-mode</code></td><td>No</td><td><code class="inline">hierarchical</code></td><td><code class="inline">hierarchical</code> (higher-tier changes reset lower-tier carries) or <code class="inline">independent</code> (pandas-style ffill).</td></tr>
+      <tr><td><code class="inline">--ingest-mode</code></td><td>No</td><td><code class="inline">fill</code></td><td><code class="inline">fill</code> applies forward-fill. <code class="inline">raw</code> skips fill-down entirely.</td></tr>
+      <tr><td><code class="inline">--drop-blank-rows</code></td><td>No</td><td><code class="inline">False</code></td><td>Drop rows where all fill columns are empty after filling.</td></tr>
+      <tr><td><code class="inline">--require-non-null</code></td><td>No</td><td>-</td><td>JSON array of headers. Drop row if any are null/blank after fill.</td></tr>
+      <tr><td><code class="inline">--require-non-null-letters</code></td><td>No</td><td>-</td><td>Excel column letters for require-non-null. Merged with <code class="inline">--require-non-null</code>.</td></tr>
+      <tr><td><code class="inline">--row-hash</code></td><td>No</td><td><code class="inline">False</code></td><td>Include a <code class="inline">row_hash</code> column (SHA-256 hex digest over all columns after filling).</td></tr>
+      <tr><td><code class="inline">--excel-row-numbers</code></td><td>No</td><td><code class="inline">False</code></td><td>Include an <code class="inline">excel_row</code> column with the original 1-based row number.</td></tr>
+      <tr><td><code class="inline">--if-exists</code></td><td>No</td><td><code class="inline">fail</code></td><td><code class="inline">fail</code>, <code class="inline">replace</code>, or <code class="inline">append</code>.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- db subcommand -->
+  <h3 id="cli-db">db Subcommand (SQLite Output)</h3>
+  <table class="ref-table">
+    <thead><tr><th>Option</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">--db</code></td><td>Yes</td><td>-</td><td>SQLite database file path (created if missing).</td></tr>
+      <tr><td><code class="inline">--table</code></td><td>No</td><td>Derived from sheet</td><td>SQLite table name.</td></tr>
+      <tr><td><code class="inline">--batch-size</code></td><td>No</td><td><code class="inline">1000</code></td><td>Rows per <code class="inline">executemany()</code> batch.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Example: Hierarchical fill to SQLite</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">sales_report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country","City"]'</span> \
+    <span class="op">--db</span> <span class="string">sales.db</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span></pre>
+
+  <h4>Example: Fill by column letters</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols-letters</span> <span class="nb">A C AE</span> \
+    <span class="op">--db</span> <span class="string">out.db</span></pre>
+
+  <h4>Example: Append with row filtering</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">report.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Data"</span> \
+    <span class="op">--header-row</span> <span class="nb">2</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Category","Subcategory"]'</span> \
+    <span class="op">--drop-blank-rows</span> \
+    <span class="op">--require-non-null</span> <span class="string">'["Category"]'</span> \
+    <span class="op">--db</span> <span class="string">warehouse.db</span> \
+    <span class="op">--table</span> <span class="string">products</span> \
+    <span class="op">--if-exists</span> <span class="string">append</span></pre>
+
+  <h4>Example: Raw ingest (no fill-down)</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown db \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--ingest-mode</span> <span class="string">raw</span> \
+    <span class="op">--db</span> <span class="string">out.db</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span> \
+    <span class="op">--if-exists</span> <span class="string">replace</span></pre>
+
+  <!-- xlsx subcommand -->
+  <h3 id="cli-xlsx">xlsx Subcommand (Excel Output)</h3>
+  <table class="ref-table">
+    <thead><tr><th>Option</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">--outfile</code></td><td>Yes</td><td>-</td><td>Output .xlsx file path.</td></tr>
+      <tr><td><code class="inline">--outsheet</code></td><td>No</td><td>Derived from input</td><td>Output sheet name.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Example: Fill by header names to Excel</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown xlsx \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols</span> <span class="string">'["Region","Country","City"]'</span> \
+    <span class="op">--outfile</span> <span class="string">filled.xlsx</span> \
+    <span class="op">--outsheet</span> <span class="string">Processed</span></pre>
+
+  <h4>Example: Fill by column letters to Excel</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown xlsx \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--fill-cols-letters</span> <span class="nb">A D</span> \
+    <span class="op">--outfile</span> <span class="string">out.xlsx</span></pre>
+
+  <h4>Example: Raw ingest to Excel</h4>
+  <pre class="code-block"><span class="prompt" style="color:#64748b">$</span> xlfilldown xlsx \
+    <span class="op">--infile</span> <span class="string">data.xlsx</span> \
+    <span class="op">--insheet</span> <span class="string">"Sheet1"</span> \
+    <span class="op">--header-row</span> <span class="nb">1</span> \
+    <span class="op">--ingest-mode</span> <span class="string">raw</span> \
+    <span class="op">--outfile</span> <span class="string">raw_copy.xlsx</span> \
+    <span class="op">--outsheet</span> <span class="string">RawSheet</span> \
+    <span class="op">--row-hash</span> \
+    <span class="op">--excel-row-numbers</span> \
+    <span class="op">--if-exists</span> <span class="string">replace</span></pre>
+
+  <!-- Python API -->
+  <h2 id="python-api">Python API</h2>
+  <p>Import from <code class="inline">xlfilldown.api</code>:</p>
+  <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>, <span class="fn">ingest_excel_to_excel</span></pre>
+
+  <h3 id="api-sqlite">ingest_excel_to_sqlite()</h3>
+  <p>Stream an .xlsx sheet into a SQLite database table with optional forward-fill, row hashing, and row number preservation.</p>
+
+  <h4>Signature</h4>
+  <pre class="code-block"><span class="kw">def</span> <span class="fn">ingest_excel_to_sqlite</span>(
+    file: <span class="nb">str</span> | <span class="nb">Path</span>,              <span class="comment"># Input .xlsx file path</span>
+    sheet: <span class="nb">str</span>,                     <span class="comment"># Sheet name to read</span>
+    header_row: <span class="nb">int</span>,                <span class="comment"># 1-based header row</span>
+    fill_cols: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,         <span class="comment"># Fill by header names</span>
+    fill_cols_letters: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,  <span class="comment"># Fill by column letters</span>
+    fill_mode: <span class="nb">Optional</span>[<span class="nb">str</span>] = <span class="nb">None</span>,       <span class="comment"># "hierarchical" | "independent"</span>
+    ingest_mode: <span class="nb">str</span> = <span class="string">"fill"</span>,            <span class="comment"># "fill" | "raw"</span>
+    drop_blank_rows: <span class="nb">bool</span> = <span class="nb">False</span>,
+    require_non_null: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    require_non_null_letters: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    row_hash: <span class="nb">bool</span> = <span class="nb">False</span>,
+    excel_row_numbers: <span class="nb">bool</span> = <span class="nb">False</span>,
+    db: <span class="nb">str</span> | <span class="nb">Path</span>,                  <span class="comment"># SQLite database file</span>
+    table: <span class="nb">Optional</span>[<span class="nb">str</span>] = <span class="nb">None</span>,    <span class="comment"># Table name (default: sheet name)</span>
+    batch_size: <span class="nb">int</span> = <span class="nb">1000</span>,
+    if_exists: <span class="nb">str</span> = <span class="string">"fail"</span>,         <span class="comment"># "fail" | "replace" | "append"</span>
+) -> <span class="nb">dict</span></pre>
+
+  <h4>Return value</h4>
+  <table class="ref-table">
+    <thead><tr><th>Key</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">table</code></td><td>str</td><td>SQLite table name used.</td></tr>
+      <tr><td><code class="inline">columns</code></td><td>list</td><td>List of column names in the table.</td></tr>
+      <tr><td><code class="inline">rows_ingested</code></td><td>int</td><td>Number of rows written.</td></tr>
+      <tr><td><code class="inline">row_hash</code></td><td>bool</td><td>Whether row hashing was enabled.</td></tr>
+      <tr><td><code class="inline">excel_row_numbers</code></td><td>bool</td><td>Whether Excel row numbers were included.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Example</h4>
+  <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_sqlite</span>
+
+summary = <span class="fn">ingest_excel_to_sqlite</span>(
+    file=<span class="string">"sales_report.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>, <span class="string">"City"</span>],
+    fill_mode=<span class="string">"hierarchical"</span>,
+    db=<span class="string">"sales.db"</span>,
+    row_hash=<span class="nb">True</span>,
+    excel_row_numbers=<span class="nb">True</span>,
+    drop_blank_rows=<span class="nb">True</span>,
+    if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="nb">print</span>(<span class="string">f"Table: </span>{summary[<span class="string">'table'</span>]}<span class="string">"</span>)
+<span class="nb">print</span>(<span class="string">f"Rows: </span>{summary[<span class="string">'rows_ingested'</span>]}<span class="string">"</span>)</pre>
+
+  <h3 id="api-excel">ingest_excel_to_excel()</h3>
+  <p>Stream an .xlsx sheet into a new Excel sheet with optional forward-fill, row hashing, and row number preservation.</p>
+
+  <h4>Signature</h4>
+  <pre class="code-block"><span class="kw">def</span> <span class="fn">ingest_excel_to_excel</span>(
+    file: <span class="nb">str</span> | <span class="nb">Path</span>,
+    sheet: <span class="nb">str</span>,
+    header_row: <span class="nb">int</span>,
+    fill_cols: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    fill_cols_letters: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    fill_mode: <span class="nb">Optional</span>[<span class="nb">str</span>] = <span class="nb">None</span>,
+    ingest_mode: <span class="nb">str</span> = <span class="string">"fill"</span>,
+    drop_blank_rows: <span class="nb">bool</span> = <span class="nb">False</span>,
+    require_non_null: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    require_non_null_letters: <span class="nb">Optional</span>[<span class="nb">Sequence</span>[<span class="nb">str</span>]] = <span class="nb">None</span>,
+    row_hash: <span class="nb">bool</span> = <span class="nb">False</span>,
+    excel_row_numbers: <span class="nb">bool</span> = <span class="nb">False</span>,
+    outfile: <span class="nb">str</span> | <span class="nb">Path</span>,
+    outsheet: <span class="nb">Optional</span>[<span class="nb">str</span>] = <span class="nb">None</span>,
+    if_exists: <span class="nb">str</span> = <span class="string">"fail"</span>,
+) -> <span class="nb">dict</span></pre>
+
+  <h4>Return value</h4>
+  <table class="ref-table">
+    <thead><tr><th>Key</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">workbook</code></td><td>str</td><td>Output workbook file path.</td></tr>
+      <tr><td><code class="inline">sheet</code></td><td>str</td><td>Output sheet name.</td></tr>
+      <tr><td><code class="inline">columns</code></td><td>list</td><td>List of column names written.</td></tr>
+      <tr><td><code class="inline">rows_written</code></td><td>int</td><td>Number of rows written.</td></tr>
+      <tr><td><code class="inline">row_hash</code></td><td>bool</td><td>Whether row hashing was enabled.</td></tr>
+      <tr><td><code class="inline">excel_row_numbers</code></td><td>bool</td><td>Whether Excel row numbers were included.</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Example</h4>
+  <pre class="code-block"><span class="kw">from</span> xlfilldown.api <span class="kw">import</span> <span class="fn">ingest_excel_to_excel</span>
+
+summary = <span class="fn">ingest_excel_to_excel</span>(
+    file=<span class="string">"data.xlsx"</span>,
+    sheet=<span class="string">"Sheet1"</span>,
+    header_row=<span class="nb">1</span>,
+    fill_cols=[<span class="string">"Region"</span>, <span class="string">"Country"</span>],
+    fill_mode=<span class="string">"independent"</span>,
+    outfile=<span class="string">"filled.xlsx"</span>,
+    outsheet=<span class="string">"Processed"</span>,
+    row_hash=<span class="nb">True</span>,
+    excel_row_numbers=<span class="nb">True</span>,
+    if_exists=<span class="string">"replace"</span>,
+)
+
+<span class="nb">print</span>(<span class="string">f"Wrote </span>{summary[<span class="string">'rows_written'</span>]}<span class="string"> rows to </span>{summary[<span class="string">'workbook'</span>]}<span class="string">"</span>)</pre>
+
+  <h3 id="api-utilities">Utility Functions</h3>
+  <p>Re-exported from <code class="inline">xlfilldown.api</code> for advanced use:</p>
+  <table class="ref-table">
+    <thead><tr><th>Function</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">normalize_headers(cells)</code></td><td>Normalize header cell values: trim whitespace, coerce None/blank/"nan" to empty strings. Returns a list of strings.</td></tr>
+      <tr><td><code class="inline">canon_list(values)</code></td><td>Canonicalize a sequence of values to a JSON-format string. Used internally for hash computation.</td></tr>
+      <tr><td><code class="inline">sha256_hex(s)</code></td><td>Compute the SHA-256 hex digest of a string.</td></tr>
+      <tr><td><code class="inline">qident(name)</code></td><td>Quote a SQLite identifier (table or column name) safely.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Fill Modes -->
+  <h2 id="fill-modes">Fill Modes</h2>
+
+  <h3 id="fill-hierarchical">Hierarchical (default)</h3>
+  <p>In hierarchical mode, the order of columns matters. The first column is the highest tier. When a higher-tier column receives a new value, all lower-tier carries reset.</p>
+  <div class="note">
+    <p><strong>Think of it as:</strong> Region &gt; Country &gt; City. When a new Region appears, Country and City reset. When a new Country appears, only City resets.</p>
+  </div>
+  <p>Input:</p>
+  <pre class="code-block">Region     Country    City
+EMEA       UK         London
+                      Manchester
+           Germany    Berlin
+                      Munich
+APAC       Japan      Tokyo</pre>
+  <p>Hierarchical output with <code class="inline">--fill-cols '["Region","Country","City"]'</code>:</p>
+  <pre class="code-block">Region     Country    City
+EMEA       UK         London
+<span class="string">EMEA</span>       <span class="string">UK</span>         Manchester    <span class="comment"># Region and Country filled from above</span>
+<span class="string">EMEA</span>       Germany    Berlin        <span class="comment"># Country changed; City has own value</span>
+<span class="string">EMEA</span>       <span class="string">Germany</span>    Munich        <span class="comment"># Both filled</span>
+APAC       Japan      Tokyo         <span class="comment"># Region changed; lower tiers reset</span></pre>
+
+  <div class="warning">
+    <p><strong>Important:</strong> "Reset" means the carry is cleared for that row. If the row has its own value for a lower-tier column (like "Berlin" above), that value is kept. The reset only affects empty cells that would otherwise carry a stale value.</p>
+  </div>
+
+  <h3 id="fill-independent">Independent (pandas-style)</h3>
+  <p>Each column fills forward on its own. Column order does not matter. Columns do not reset each other.</p>
+  <p>Same input, with <code class="inline">--fill-mode independent</code>:</p>
+  <pre class="code-block">Region     Country    City
+EMEA       UK         London
+<span class="string">EMEA</span>       <span class="string">UK</span>         Manchester    <span class="comment"># UK carries independently</span>
+<span class="string">EMEA</span>       Germany    Berlin
+<span class="string">EMEA</span>       <span class="string">Germany</span>    Munich
+APAC       Japan      Tokyo</pre>
+
+  <!-- Behavior Details -->
+  <h2 id="behavior">Behavior Details</h2>
+
+  <h3>Headers</h3>
+  <ul>
+    <li>Only columns with non-empty headers on <code class="inline">--header-row</code> are ingested.</li>
+    <li>Normalization: whitespace trimmed, case preserved, <code class="inline">"nan"</code> string converted to empty.</li>
+    <li>Empty or duplicate headers after normalization are rejected with a clear error.</li>
+    <li>When using <code class="inline">--fill-cols-letters</code>, each referenced column must have a non-empty header.</li>
+  </ul>
+
+  <h3>Cell treatment</h3>
+  <ul>
+    <li>All values stored as <strong>TEXT</strong> (including numbers, dates, <code class="inline">excel_row</code>).</li>
+    <li>Whitespace-only cells treated as blank.</li>
+    <li>None/blank/whitespace normalize to NULL (empty).</li>
+    <li>Numbers canonicalized to stable text: <code class="inline">1</code> and <code class="inline">1.0</code> both become <code class="inline">"1"</code>. No scientific notation.</li>
+    <li>Dates converted to ISO format.</li>
+    <li>Strings stripped of leading/trailing whitespace.</li>
+  </ul>
+
+  <h3>Row hash</h3>
+  <ul>
+    <li>SHA-256 hex digest over <strong>all ingested columns</strong> (in header order) <strong>after</strong> filling.</li>
+    <li>For completely empty rows, the hash reflects all-empty values.</li>
+    <li>Numbers normalized before hashing (same canonicalization as storage).</li>
+    <li>In SQLite mode, a non-unique index is created on <code class="inline">row_hash</code>.</li>
+  </ul>
+
+  <h3>Row filtering</h3>
+  <ul>
+    <li><code class="inline">--drop-blank-rows</code>: drops rows where <strong>all</strong> fill columns are blank after filling.</li>
+    <li><code class="inline">--require-non-null</code>: drops rows where <strong>any</strong> specified headers are blank after filling.</li>
+    <li>Both can be combined. Filters run <strong>after</strong> fill-down logic.</li>
+  </ul>
+
+  <h3>Completely empty rows</h3>
+  <ul>
+    <li>Rows where all columns are blank are treated as spacer rows.</li>
+    <li>No fill-down is applied to them, but the carry persists past them.</li>
+    <li>Dropped if <code class="inline">--drop-blank-rows</code> is enabled.</li>
+  </ul>
+
+  <h3>Raw ingest mode</h3>
+  <p>Set <code class="inline">--ingest-mode raw</code> to skip fill-down entirely.</p>
+  <ul>
+    <li><code class="inline">--fill-cols</code> / <code class="inline">--fill-cols-letters</code> ignored (no error raised).</li>
+    <li>Row filtering (<code class="inline">--drop-blank-rows</code>, <code class="inline">--require-non-null</code>) still applies.</li>
+    <li>Audit columns (<code class="inline">--row-hash</code>, <code class="inline">--excel-row-numbers</code>) still work.</li>
+    <li>Useful for raw copies with audit columns or baseline comparisons.</li>
+  </ul>
+
+  <!-- SQLite details -->
+  <h2 id="sqlite-details">SQLite Output Details</h2>
+  <h4>Schema</h4>
+  <ul>
+    <li>All columns are <strong>TEXT</strong> type.</li>
+    <li>Column order: <code class="inline">[row_hash] [excel_row] headers...</code></li>
+    <li>Indexes created automatically on <code class="inline">excel_row</code> and <code class="inline">row_hash</code> when enabled.</li>
+  </ul>
+  <h4>Append mode</h4>
+  <ul>
+    <li>Existing table schema must exactly match the expected column order.</li>
+    <li>Validated using <code class="inline">PRAGMA table_info()</code> before inserting.</li>
+  </ul>
+  <h4>Workbook reading</h4>
+  <ul>
+    <li>Input opened with <code class="inline">read_only=True, data_only=True</code>.</li>
+    <li>Formulas use cached values (last computed result).</li>
+  </ul>
+
+  <!-- Excel output details -->
+  <h2 id="excel-details">Excel Output Details</h2>
+  <h4>Sheet-level --if-exists</h4>
+  <table class="ref-table">
+    <thead><tr><th>Value</th><th>Behavior</th></tr></thead>
+    <tbody>
+      <tr><td><code class="inline">fail</code></td><td>Error if the target sheet already exists.</td></tr>
+      <tr><td><code class="inline">replace</code></td><td>Recreate the target sheet fresh.</td></tr>
+      <tr><td><code class="inline">append</code></td><td>Append below existing rows. Destination header must match expected list.</td></tr>
+    </tbody>
+  </table>
+  <h4>Optimization</h4>
+  <ul>
+    <li>Uses <code class="inline">write_only=True</code> for new workbooks (streaming writes).</li>
+    <li>Regular write mode for existing workbooks (to support append/replace).</li>
+  </ul>
+
+  <!-- Compatibility -->
+  <h2 id="compatibility">Compatibility</h2>
+  <table class="ref-table">
+    <thead><tr><th>Requirement</th><th>Version</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Python</td><td>&ge; 3.9</td><td>Tested on 3.9 through 3.13</td></tr>
+      <tr><td>openpyxl</td><td>&ge; 3.1.0</td><td>Only runtime dependency</td></tr>
+      <tr><td>Input format</td><td>.xlsx (OOXML)</td><td>Does not support .xls (legacy binary)</td></tr>
+      <tr><td>Output (DB)</td><td>SQLite 3</td><td>Python built-in sqlite3 module</td></tr>
+      <tr><td>Output (Excel)</td><td>.xlsx (OOXML)</td><td>Via openpyxl</td></tr>
+      <tr><td>OS</td><td>Any</td><td>Windows, macOS, Linux</td></tr>
+      <tr><td>License</td><td>MIT</td><td>Free for commercial and personal use</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h3>xlf<span>ill</span>down</h3>
+      <p>A Python library for filling down values in .xlsx spreadsheets (OOXML).</p>
+    </div>
+    <div class="footer-links">
+      <h4>Documentation</h4>
+      <a href="index.html">Home</a>
+      <a href="reference.html">Reference Guide</a>
+      <a href="best_practices.html">Best Practices</a>
+    </div>
+    <div class="footer-links">
+      <h4>Project</h4>
+      <a href="https://github.com/RexBytes/xlfilldown">GitHub</a>
+      <a href="https://pypi.org/project/xlfilldown/">PyPI</a>
+      <a href="https://github.com/RexBytes/xlfilldown/releases">Changelog</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2025 RexBytes. MIT License.</span>
+    <p class="disclaimer">Not affiliated with or endorsed by Microsoft Corporation. "Excel" and ".xlsx" are trademarks or file formats associated with Microsoft. xlfilldown is an independent open-source Python package that reads and writes OOXML (.xlsx) files via the openpyxl library.</p>
+  </div>
+</footer>
+
+</body>
+</html>
